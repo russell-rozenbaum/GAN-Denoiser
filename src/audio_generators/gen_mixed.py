@@ -12,6 +12,12 @@ mixed_signals_dir = "data/mixed"
 # Ensure the mixed directory exists
 os.makedirs(mixed_signals_dir, exist_ok=True)
 
+# Clear the mixed directory
+for file in os.listdir(mixed_signals_dir):
+    file_path = os.path.join(mixed_signals_dir, file)
+    if os.path.isfile(file_path):
+        os.unlink(file_path)  # Remove the file
+
 # Get list of clean and noise files
 clean_files = [f for f in os.listdir(clean_signals_dir) if f.endswith(".wav")]
 noise_files = [f for f in os.listdir(noise_signals_dir) if f.endswith(".wav")]

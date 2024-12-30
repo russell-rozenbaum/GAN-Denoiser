@@ -1,0 +1,8 @@
+{
+    "python.pythonPath": "/opt/anaconda3/envs/wave_gan/bin/python",
+    "code-runner.executorMap": {
+        "python": "/opt/anaconda3/envs/wave_gan/bin/python"
+    },
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.runInTerminal": true
+}
