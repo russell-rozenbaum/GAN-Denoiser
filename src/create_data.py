@@ -1,10 +1,10 @@
 '''
-
+Generate dataset of sine waves and gaussian white noise
 '''
 
 import numpy as np
 import os
-#from scipy.io.wavfile import read, write
+from scipy.io.wavfile import read, write
 from scipy.signal import resample
 import random
 import utils
@@ -110,10 +110,10 @@ def resample_and_write(signal, duration, i, output_dir="data/resampled") :
     resampled_noise_int16 = np.int16(resampled_noise / np.max(np.abs(resampled_noise)) * 32767)
     
     # Save to a .wav file
-    output_file = os.path.join(output_dir, f"noise_{i+1:04d}.wav")
+    output_file = os.path.join(output_dir, f"resampled_{i+1:04d}.wav")
     write(output_file, target_sample_rate, resampled_noise_int16)
 
-def generate_gwn(amplitude_std=1.0, duration_std=0, sample_rate=1024, num_files=1000, output_dir="data/noise") :
+def generate_gwn(output_dir, amplitude_std=1.0, duration_std=0, sample_rate=1024, num_files=1000) :
     """
     Gaussian White Noise Generator
 
@@ -139,19 +139,21 @@ def generate_gwn(amplitude_std=1.0, duration_std=0, sample_rate=1024, num_files=
         # Save to a .wav file
         output_file = os.path.join(output_dir, f"noise_{i+1:04d}.npy")
         np.save(output_file, noise)
-        #resample_and_write(noise, duration, i, output_dir)
+        #resample_and_write(noise, duration, i)
 
     print(f"Generated {num_files} noise signals in '{output_dir}' directory.")
 
 
-def generate_sines(low_freq=10,
-                  high_freq=256,
-                  num_components=5,
-                  amplitude_std=0, 
-                  duration_std=0,
-                  sample_rate=1024,
-                  num_files=1000,
-                  output_dir="data/clean") :
+def generate_sines(
+        output_dir,
+        low_freq=10,
+        high_freq=256,
+        num_components=5,
+        amplitude_std=0, 
+        duration_std=0,
+        sample_rate=1024,
+        num_files=1000,
+        ) :
     """
     Sine-Wave Signal Generator
 
@@ -189,16 +191,16 @@ def generate_sines(low_freq=10,
         # Save to a .wav file
         output_file = os.path.join(output_dir, f"sine_wave_{i+1:04d}.npy")
         np.save(output_file, signal)
-        #resample_and_write(signal, duration, i, output_dir)
+        #resample_and_write(signal, duration, i)
 
     print(f"Generated {num_files} sine signals in '{output_dir}' directory.")
 
 
 
 def generate_mixed_signals(
-    clean_signals_dir="data/clean",
-    noise_signals_dir="data/noise",
-    mixed_signals_dir="data/mixed"
+    noise_signals_dir,
+    clean_signals_dir,
+    mixed_signals_dir
 ) : 
     # Ensure the mixed directory exists
     os.makedirs(mixed_signals_dir, exist_ok=True)
@@ -210,6 +212,7 @@ def generate_mixed_signals(
     clean_files = [f for f in os.listdir(clean_signals_dir) if f.endswith(".npy")]
     noise_files = [f for f in os.listdir(noise_signals_dir) if f.endswith(".npy")]
 
+    i = 0
     # Mixing process
     for clean_file in clean_files:
         # Read clean signal
@@ -222,22 +225,35 @@ def generate_mixed_signals(
         noise_signal = np.load(noise_path)
 
         # Mix the audio
-        mixed_signal = mix_audio(clean_signal, noise_signal, snr=6.0)
+        mixed_signal = mix_audio(clean_signal, noise_signal, snr=snr[6])
 
         # Save the mixed signal
         mixed_file_name = f"mixed_{os.path.splitext(clean_file)[0]}_{os.path.splitext(noise_file)[0]}.npy"
         mixed_path = os.path.join(mixed_signals_dir, mixed_file_name)
         np.save(mixed_path, mixed_signal)
+        resample_and_write(mixed_signal, 1.0, i)
+        i += 1
 
-    print(f"Mixed audio files saved in '{mixed_signals_dir}'.")
+    print(f"{len(clean_files)} mixed audio files saved in '{mixed_signals_dir}'.")
 
 
 
 def main():
 
-    directories = ["data/clean", "data/noise", "data/mixed"]
-    clean_signals_dir, noise_signals_dir, mixed_signals_dir = directories
+    kinds = ["/noise", "/clean", "/mixed"]
+    splits = ["data/train", "data/validation"]
+
+    directories = []
+
+    for split in splits :
+        for kind in kinds :
+            # Combine the split and directory into a new path
+            directories.append(split + kind)
+
     sample_rate=1024
+    
+    total_signals = 45000
+    tr_split, val_split = .9, .1
     
     # Wipe all directories
     for directory in directories:
@@ -245,37 +261,64 @@ def main():
             file_path = os.path.join(directory, file)
             if os.path.isfile(file_path):
                 os.unlink(file_path)
+    for file in os.listdir("data/resampled"):
+            file_path = os.path.join("data/resampled", file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
     
-    # Generate Gaussian White Noise
+     # Generate Gaussian White Noise
     generate_gwn(
-        amplitude_std=1,
+        output_dir=directories[0],
+        amplitude_std=0.5,
         duration_std=0,
         sample_rate=sample_rate,
-        num_files=22500,
+        num_files=int(total_signals * tr_split),
+    )
+    generate_gwn(
+        output_dir=directories[3],
+        amplitude_std=0.5,
+        duration_std=0,
+        sample_rate=sample_rate,
+        num_files=int(total_signals * val_split),
     )
 
     # Generate Sinusoidal Compositions
     generate_sines(
+        output_dir=directories[1],
         low_freq=10,
         high_freq=256,
         num_components=3,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,
-        num_files=22500,
+        num_files=int(total_signals * tr_split),
+    )
+    generate_sines(
+        output_dir=directories[4],
+        low_freq=10,
+        high_freq=256,
+        num_components=3,
+        amplitude_std=0,
+        duration_std=0,
+        sample_rate=sample_rate,
+        num_files=int(total_signals * val_split),
     )
 
     # Generate Mixed (GWN + Sines) Signals
     generate_mixed_signals(
-        clean_signals_dir, 
-        noise_signals_dir, 
-        mixed_signals_dir
+        noise_signals_dir=directories[0],
+        clean_signals_dir=directories[1],
+        mixed_signals_dir=directories[2]
+    )
+    generate_mixed_signals(
+        noise_signals_dir=directories[3], 
+        clean_signals_dir=directories[4], 
+        mixed_signals_dir=directories[5]
     )
 
     # Generate graphical displays of random signals from each directory
     time = np.linspace(0, 1, int(sample_rate * 1), endpoint=False)
     for directory in directories:
-        # Get a list of .wav files in the directory
         numpy_files = [f for f in os.listdir(directory) if f.endswith(".npy")]
         if numpy_files:
             # Select a random .wav file
