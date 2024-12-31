@@ -1,58 +1,57 @@
-import tensorflow as tf
 import os
-from scipy.io.wavfile import read
+import librosa
+import torch
+import librosa.display
+import matplotlib.pyplot as plt
 import numpy as np
 
-# Paths to data splits
-train_clean_dir = "data/splits/train/clean"
-train_noisy_dir = "data/splits/train/noisy"
-val_clean_dir = "data/splits/val/clean"
-val_noisy_dir = "data/splits/val/noisy"
-test_clean_dir = "data/splits/test/clean"
-test_noisy_dir = "data/splits/test/noisy"
+# Paths to clean and noisy datasets
+clean_signals_dir = "data/clean"
+noisy_signals_dir = "data/mixed"
 
-# Parameters
-batch_size = 32
-sample_rate = 44100  # Assuming all audio is sampled at 44.1 kHz
-duration = 2  # Audio clip duration in seconds
-clip_length = sample_rate * duration  # Total samples per clip
+# Function to load audio files and compute their Mel spectrogram
 
 
-def load_audio(file_path):
-    """Load a .wav file and normalize to [-1, 1]."""
-    sample_rate, audio = read(file_path.numpy().decode("utf-8"))
-    audio = audio.astype(np.float32) / 32768.0  # Normalize to [-1, 1]
-    if len(audio) > clip_length:
-        audio = audio[:clip_length]  # Trim if too long
-    elif len(audio) < clip_length:
-        audio = np.pad(audio, (0, clip_length - len(audio)), mode="constant")  # Pad if too short
-    return audio
+# Get lists of files from clean and noisy directories
+clean_files = [os.path.join(clean_signals_dir, f) for f in os.listdir(clean_signals_dir) if f.endswith('.wav')]
+noisy_files = [os.path.join(noisy_signals_dir, f) for f in os.listdir(noisy_signals_dir) if f.endswith('.wav')]
 
+# Get Mel spectrograms for the first two files in each dataset
+clean_spectrograms = [get_mel_spectrogram(f) for f in clean_files[:2]]
+noisy_spectrograms = [get_mel_spectrogram(f) for f in noisy_files[:2]]
 
-def tf_load_audio(file_path):
-    """Wrapper for TensorFlow to call the load_audio function."""
-    audio = tf.py_function(load_audio, [file_path], tf.float32)
-    audio.set_shape((clip_length,))  # Set fixed shape for batching
-    return audio
+# Plot the first Mel spectrogram of clean data
+plt.figure(figsize=(10, 6))
+librosa.display.specshow(clean_spectrograms[0], x_axis='time', y_axis='mel')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Clean Signal Mel Spectrogram (Example 1)')
+plt.show()
 
+# Plot the second Mel spectrogram of clean data
+plt.figure(figsize=(10, 6))
+librosa.display.specshow(clean_spectrograms[1], x_axis='time', y_axis='mel')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Clean Signal Mel Spectrogram (Example 2)')
+plt.show()
 
-def create_dataset(clean_dir, noisy_dir, batch_size):
-    """Create a dataset from clean and noisy directories."""
-    clean_files = [os.path.join(clean_dir, f) for f in os.listdir(clean_dir) if f.endswith(".wav")]
-    noisy_files = [os.path.join(noisy_dir, f) for f in os.listdir(noisy_dir) if f.endswith(".wav")]
+# Plot the first Mel spectrogram of noisy data
+plt.figure(figsize=(10, 6))
+librosa.display.specshow(noisy_spectrograms[0], x_axis='time', y_axis='mel')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Noisy Signal Mel Spectrogram (Example 1)')
+plt.show()
 
-    clean_ds = tf.data.Dataset.from_tensor_slices(clean_files).map(tf_load_audio)
-    noisy_ds = tf.data.Dataset.from_tensor_slices(noisy_files).map(tf_load_audio)
+# Plot the second Mel spectrogram of noisy data
+plt.figure(figsize=(10, 6))
+librosa.display.specshow(noisy_spectrograms[1], x_axis='time', y_axis='mel')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Noisy Signal Mel Spectrogram (Example 2)')
+plt.show()
 
-    dataset = tf.data.Dataset.zip((noisy_ds, clean_ds))
-    dataset = dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+# Optionally, convert the spectrograms to PyTorch tensors if needed
+clean_spectrograms_tensor = [torch.tensor(spectrogram) for spectrogram in clean_spectrograms]
+noisy_spectrograms_tensor = [torch.tensor(spectrogram) for spectrogram in noisy_spectrograms]
 
-    return dataset
-
-
-# Create datasets
-train_dataset = create_dataset(train_noisy_dir, train_clean_dir, batch_size)
-val_dataset = create_dataset(val_noisy_dir, val_clean_dir, batch_size)
-test_dataset = create_dataset(test_noisy_dir, test_clean_dir, batch_size)
-
-print("Datasets ready!")
+# Print the shape of the Mel spectrograms for verification
+print("Shape of clean spectrograms:", [s.shape for s in clean_spectrograms])
+print("Shape of noisy spectrograms:", [s.shape for s in noisy_spectrograms])
