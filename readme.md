@@ -43,7 +43,7 @@ Then run dataset.py to verify that everything is working properly (this won't ac
 Now we can run train_gan.py
 <!-- TODO: finish training and performance anlysis implementations -->
 
-# Ideas
+## Ideas
 
 Given this is a trivial dataset, generated through random uniform and gaussian distributions, this model will by no means be efficient on real-world data alone. 
 
