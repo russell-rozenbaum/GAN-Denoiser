@@ -106,8 +106,6 @@ class Discriminator(nn.Module):
 
         # Pass through the fully connected layers
         x = self.fc_layers(x)
-        print("Discriminator output shape: ")
-        print(x.shape)
 
         # Return prediction x
         return x

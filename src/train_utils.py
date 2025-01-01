@@ -14,7 +14,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def early_stopping(stats, curr_count_to_patience, prev_val_loss):
+def early_stopping(stats, curr_count_to_patience, prev_val_loss, patience):
     """
     Calculate new patience and validation loss.
     """
@@ -26,8 +26,8 @@ def early_stopping(stats, curr_count_to_patience, prev_val_loss):
 
     prev_val_loss = min(curr_val_loss, prev_val_loss)
     
-    if curr_count_to_patience==5:
-        h_epoch = epoch - 5
+    if curr_count_to_patience == patience:
+        h_epoch = epoch - (patience // 2)
         print(f"Lowest Validation Loss: {prev_val_loss} \n At Epoch: {h_epoch}")
 
     return curr_count_to_patience, prev_val_loss
@@ -68,43 +68,88 @@ def evaluate_epoch(
 
                     discriminator_out = discriminator.forward(generator_out)
                     predicted = predictions(discriminator_out.data)
+                    true_labels = torch.ones_like(predicted)
+                    print("Discriminator Output for generator:", discriminator_out)
 
-                    true.append(torch.ones(mixed_data.size(0)))
+                    true.append(true_labels)
                     pred.append(predicted)
-                    score.append(discriminator_out.data.view(-1))  
+                    score.append(discriminator_out.data.view(-1)) # No AUROC, need?
 
                     total += mixed_data.size(0)
-                    correct += (predicted == np.ones(mixed_data.size(0))).sum().item()
+                    correct += (predicted == true_labels).sum().item()
                     running_loss.append(
-                        criterion(discriminator_out, torch.ones_like(discriminator_out))
+                        criterion(discriminator_out, true_labels)
                         .item()
                     )
 
             true = torch.cat(true)
             pred = torch.cat(pred)
-            score = torch.cat(score)
+            score = torch.cat(score) # No AUROC, need?
+            loss = np.mean(running_loss)
+            acc = correct / total
+            auroc = -1
+            return loss, acc, auroc
+        else : # model == "discriminator"
+            # Discriminator evaluation
+            for i, mixed_data in enumerate(mixed_loader):
+                with torch.no_grad():
+                    generator_out = generator.forward(mixed_data)
+                    discriminator_out = discriminator.forward(generator_out)
+                    predicted = predictions(discriminator_out.data)
+                    true_labels = torch.zeros_like(predicted)
+                    print("Discriminator Output for disc mixed:", discriminator_out)
+                    true.append(true_labels)
+                    pred.append(predicted)
+                    score.append(discriminator_out.data.view(-1)) 
+                    total += mixed_data.size(0)
+                    correct += (predicted == true_labels).sum().item()
+                    running_loss.append(
+                        criterion(discriminator_out, true_labels)
+                        .item()
+                    )
+            for i, clean_data in enumerate(clean_loader):
+                with torch.no_grad():
+                    discriminator_out = discriminator.forward(clean_data)
+                    predicted = predictions(discriminator_out.data)
+                    true_labels = torch.ones_like(predicted)
+                    print("Discriminator Output for disc clean:", discriminator_out)
+                    true.append(true_labels)
+                    pred.append(predicted)
+                    score.append(discriminator_out.data.view(-1)) 
+                    total += clean_data.size(0)
+                    correct += (predicted == true_labels).sum().item()
+                    running_loss.append(
+                        criterion(discriminator_out, true_labels)
+                        .item()
+                    )
+            true = torch.cat(true)
+            pred = torch.cat(pred)
+            score = torch.cat(score) 
             loss = np.mean(running_loss)
             acc = correct / total
             auroc = metrics.roc_auc_score(true, score)
             return loss, acc, auroc
-        else : # model == "discriminator"
-            # TODO: Implement discriminator evaluation
-            loss, acc, auroc = 0, 0, 0
-            return loss, acc, auroc
 
     train_loss, train_acc, train_auroc = _get_metrics(mixed_data_tr_loader, clean_data_tr_loader, model_to_eval)
     val_loss, val_acc, val_auroc = _get_metrics(mixed_data_val_loader, clean_data_val_loader, model_to_eval)
-    stats_at_epoch = {
-        "train_loss": train_loss,
-        "train_acc": train_acc,
-        "train_auroc": train_auroc,
-        "val_loss": val_loss,
-        "val_acc": val_acc,
-        "val_auroc": val_auroc,
-    }
+    if model_to_eval == "generator" :
+        stats_at_epoch = {
+            "train_loss": train_loss,
+            "train_acc": train_acc,
+            "val_loss": val_loss,
+            "val_acc": val_acc,
+        }
+    else :
+        stats_at_epoch = {
+            "train_loss": train_loss,
+            "train_acc": train_acc,
+            "train_auroc": train_auroc,
+            "val_loss": val_loss,
+            "val_acc": val_acc,
+            "val_auroc": val_auroc,
+        }
     stats.append(stats_at_epoch)
-        
-
+    
     utils.log_training(epoch, stats, model_to_eval)
     utils.update_training_plot(axes, epoch, stats, model_to_eval)
 

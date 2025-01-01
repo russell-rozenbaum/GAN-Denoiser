@@ -16,6 +16,11 @@ def hold_training_plot():
     plt.ioff()
     plt.show()
 
+def close_plot():
+    """
+    Keep the program alive to display the training plot
+    """
+    plt.close('all')
 
 def log_training(epoch, stats, model_to_eval):
     """
@@ -61,10 +66,6 @@ def make_training_plot(name="GAN Training"):
     axes[0, 1].set_xlabel("Epoch")
     axes[0, 1].set_ylabel("Accuracy")
 
-    axes[0, 2].set_title("Generator AUROC")
-    axes[0, 2].set_xlabel("Epoch")
-    axes[0, 2].set_ylabel("AUROC")
-
     # --- Row 1: Discriminator ---
     axes[1, 0].set_title("Discriminator Loss")
     axes[1, 0].set_xlabel("Epoch")
@@ -100,8 +101,9 @@ def update_training_plot(axes, epoch, stats, model_to_eval):
     val_loss_list   = [s["val_loss"]   for s in stats]
     train_acc_list  = [s["train_acc"]  for s in stats]
     val_acc_list    = [s["val_acc"]    for s in stats]
-    train_auroc_list= [s["train_auroc"]for s in stats]
-    val_auroc_list  = [s["val_auroc"]  for s in stats]
+    if model_to_eval == "discriminator":
+        train_auroc_list= [s["train_auroc"]for s in stats]
+        val_auroc_list  = [s["val_auroc"]  for s in stats]
 
     # Decide which row to update
     if model_to_eval == "generator":
@@ -130,25 +132,18 @@ def update_training_plot(axes, epoch, stats, model_to_eval):
     axes[row, 1].set_ylabel("Accuracy")
     axes[row, 1].legend()
 
-    # AUROC Subplot
-    axes[row, 2].clear()
-    axes[row, 2].plot(x_data, train_auroc_list, 'b-o', label='Train AUROC')
-    axes[row, 2].plot(x_data, val_auroc_list,   'g-o', label='Val AUROC')
-    axes[row, 2].set_title(f"{title_prefix} AUROC")
-    axes[row, 2].set_xlabel("Epoch")
-    axes[row, 2].set_ylabel("AUROC")
-    axes[row, 2].legend()
+    if model_to_eval == "discriminator":
+        # AUROC Subplot
+        axes[row, 2].clear()
+        axes[row, 2].plot(x_data, train_auroc_list, 'b-o', label='Train AUROC')
+        axes[row, 2].plot(x_data, val_auroc_list,   'g-o', label='Val AUROC')
+        axes[row, 2].set_title(f"{title_prefix} AUROC")
+        axes[row, 2].set_xlabel("Epoch")
+        axes[row, 2].set_ylabel("AUROC")
+        axes[row, 2].legend()
 
     plt.tight_layout()
-    plt.pause(0.0001)
-
-
-def save_cnn_training_plot(patience,use_augment):
-    """Save the training plot to a file."""
-    if use_augment:
-        plt.savefig(f"cnn_training_plot_patience={patience}_augmented.png", dpi=200)
-    else:
-        plt.savefig(f"cnn_training_plot_patience={patience}.png", dpi=200)
+    plt.pause(0.001)
 
 def get_mel_spectrogram(file_path, n_mels=128, fmax=8000):
     y, sr = librosa.load(file_path, sr=None)

@@ -252,7 +252,7 @@ def main():
 
     sample_rate=1024
     
-    total_signals = 400
+    total_signals = 143
     tr_split, val_split = .9, .1
     
     # Wipe all directories

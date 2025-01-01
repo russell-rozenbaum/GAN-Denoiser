@@ -151,7 +151,5 @@ class DenoisingAE(nn.Module):
         x = self.final_layer(x)
         x = x[..., :1024]
         # TODO: Find a more elegant mathematical mapping so we don't have to cut-off data
-        print("Generator output shape: ")
-        print(x.shape)
 
         return x
