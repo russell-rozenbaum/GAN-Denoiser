@@ -1,22 +1,20 @@
-# GAN Denoiser (or DAN - Denoising Adversarial Network)
+# Denoising Adversarial Network (DAN)
 
-Denoising architecture utilizing the methods behind GANs. 
-
-## Ideas
-
-A scratchpad for a speculative specification:
-Initial baby steps...
-- Generate clean audio and noise audio. Mix to create noisey dataset.
-- Generator acts as denoiser. Discriminator is fed denoised and clean waveforms, attempts to catch
-the signal who was originally noisey
-Transfer learning! 
-- Pretrain on source task involving sinusoidal waves, 400-8000Hz (common bird frequency ranges). Apply noise in this source task using gaussian white noise (GWN), attempting to closely
-imitate that of rainforest noise such as rain, wind, etc. 
-- Train for target task on smaller dataset involving clean bird sounds and noisey rainforest sounds. Mix these, and analyze performance.
-
-Further ideas:
-- Look into 2D spectrograms rather than 1D
+Denoising Autoencoder trained on a generative adversarial network (GAN). Autoencoder for use in denoising
+audio signals.
 
 
-### Short version
+## Current State
+
+Capable of being trained on denoising sinusoidal composition signals corrupted with Gaussian White Noise (GWN):
+- Sample Rate: 1024
+- Min/Max Frequencies: 10Hz/256Hz
+
+These are notable constraints, and even with these, the training process is computationally expensive when 
+training on a standard laptop. 
+
+Can assumably be extended to train on sample rates of up to 44100Hz when given proper computational power.
+
+
+### ...hmm
 
