@@ -21,17 +21,17 @@ Can assumably be extended to train on sample rates of up to 44100Hz when given p
 Setup data folder as follows:
 
 GAN-Denoiser
-|_ data
-   |_ resampled
-   |_ train
-      |_ clean
-      |_ mixed
-      |_ noise
-   |_ validation
-      |_ clean
-      |_ mixed
-      |_ noise
-|_ ...
+├── data
+│   ├── resampled
+│   │   ├── train
+│   │   │   ├── clean
+│   │   │   ├── mixed
+│   │   │   └── noise
+│   │   └── validation
+│   │       ├── clean
+│   │       ├── mixed
+│   │       └── noise
+
 
 Then run create_data.py
 This should result in folders being filled with data, and displaying plots for a random signal from each folder.
