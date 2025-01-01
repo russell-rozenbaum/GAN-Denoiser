@@ -19,8 +19,8 @@ def early_stopping(stats, curr_count_to_patience, prev_val_loss):
     Calculate new patience and validation loss.
     """
 
-    epoch = len(stats) - 1 
-    curr_val_loss = stats[-1][1]
+    epoch = len(stats) - 1
+    curr_val_loss = stats[-1]["val_loss"]
 
     curr_count_to_patience = 0 if curr_val_loss < prev_val_loss else curr_count_to_patience + 1
 
@@ -35,135 +35,163 @@ def early_stopping(stats, curr_count_to_patience, prev_val_loss):
 
 def evaluate_epoch(
     axes,
-    tr_loader,
-    val_loader,
-    te_loader,
-    model,
+    mixed_data_tr_loader, 
+    clean_data_tr_loader,
+    mixed_data_val_loader, 
+    clean_data_val_loader,
+    generator,
+    discriminator,
+    model_to_eval,
     criterion,
     epoch,
     stats,
-    include_test=False,
-    update_plot=True,
-    multiclass=False,
 ):
     """
-    Evaluate the `model` on the train, validation, and optionally test sets on the specified 'criterion' at the given 'epoch'.
+    Evaluate the generator on train and validation sets, updating stats with the performance
     """
-    model.eval()
-    def _get_metrics(loader):
-        '''
-            Evaluates the model on the given loader (either train, val, or test) and returns the accuracy, loss, and AUC.
-        '''
-        y_true, y_pred, y_score = [], [], []
+
+    # Discriminator objectives
+    target_clean_label = 1
+    target_denoised_label = 0
+
+    # Generator objective
+    target_denoised_label_for_generator = 1
+
+    def _get_metrics(mixed_loader, clean_loader, model_to_eval):
+        true, pred, score = [], [], []
         correct, total = 0, 0
         running_loss = []
-        for X, y in loader:
-            with torch.no_grad():
-                output = model(X)
-                predicted = predictions(output.data)
-                y_true.append(y)
-                y_pred.append(predicted)
-                if not multiclass:
-                    y_score.append(softmax(output.data, dim=1)[:, 1])
-                else:
-                    y_score.append(softmax(output.data, dim=1))
-                total += y.size(0)
-                correct += (predicted == y).sum().item()
-                running_loss.append(criterion(output, y).item())
-        y_true = torch.cat(y_true)
-        y_pred = torch.cat(y_pred)
-        y_score = torch.cat(y_score)
-        loss = np.mean(running_loss)
-        acc = correct / total
-        if not multiclass:
-            auroc = metrics.roc_auc_score(y_true, y_score)
-        else:
-            auroc = metrics.roc_auc_score(y_true, y_score, multi_class="ovo")
-        return acc, loss, auroc
+        if model_to_eval == "generator" :
+            for i, mixed_data in enumerate(mixed_loader):
+                with torch.no_grad():
+                    generator_out = generator.forward(mixed_data)
 
-    train_acc, train_loss, train_auc = _get_metrics(tr_loader)
-    val_acc, val_loss, val_auc = _get_metrics(val_loader)
+                    discriminator_out = discriminator.forward(generator_out)
+                    predicted = predictions(discriminator_out.data)
 
-    stats_at_epoch = [
-        val_acc,
-        val_loss,
-        val_auc,
-        train_acc,
-        train_loss,
-        train_auc,
-    ]
-    if include_test:
-        stats_at_epoch += list(_get_metrics(te_loader))
+                    true.append(torch.ones(mixed_data.size(0)))
+                    pred.append(predicted)
+                    score.append(discriminator_out.data.view(-1))  
 
+                    total += mixed_data.size(0)
+                    correct += (predicted == np.ones(mixed_data.size(0))).sum().item()
+                    running_loss.append(
+                        criterion(discriminator_out, torch.ones_like(discriminator_out))
+                        .item()
+                    )
+
+            true = torch.cat(true)
+            pred = torch.cat(pred)
+            score = torch.cat(score)
+            loss = np.mean(running_loss)
+            acc = correct / total
+            auroc = metrics.roc_auc_score(true, score)
+            return loss, acc, auroc
+        else : # model == "discriminator"
+            # TODO: Implement discriminator evaluation
+            loss, acc, auroc = 0, 0, 0
+            return loss, acc, auroc
+
+    train_loss, train_acc, train_auroc = _get_metrics(mixed_data_tr_loader, clean_data_tr_loader, model_to_eval)
+    val_loss, val_acc, val_auroc = _get_metrics(mixed_data_val_loader, clean_data_val_loader, model_to_eval)
+    stats_at_epoch = {
+        "train_loss": train_loss,
+        "train_acc": train_acc,
+        "train_auroc": train_auroc,
+        "val_loss": val_loss,
+        "val_acc": val_acc,
+        "val_auroc": val_auroc,
+    }
     stats.append(stats_at_epoch)
-    utils.log_training(epoch, stats)
-    if update_plot:
-        utils.update_training_plot(axes, epoch, stats)
+        
+
+    utils.log_training(epoch, stats, model_to_eval)
+    utils.update_training_plot(axes, epoch, stats, model_to_eval)
 
 
-def train_epoch(data_loader, model, criterion, optimizer):
+
+def discriminator_train_epoch(mixed_data_loader, clean_data_loader, criterion, optimizer, discriminator, generator):
     """
-    Train the `model` for one epoch using data from `data_loader`.
+    Train a discriminator model for one epoch using data from clean_data_loader and 
+    outputs from generator given mixed_data_loader input
 
     Args:
-        data_loader: DataLoader providing batches of input data and corresponding labels.
-
-        model: The model to be trained. This is one of the model classes in the 'model' folder. 
-
-        criterion (torch.nn.Module): The loss function used to compute the model's loss.
-
-        optimizer: The optimizer used to update the model parameters.
-
-    Description:
-        This function sets the model to training mode and use the data loader to iterate through the entire dataset.
-        For each batch, it performs the following steps:
-        1. Resets the gradient calculations in the optimizer.
-        2. Performs a forward pass to get the model predictions.
-        3. Computes the loss between predictions and true labels using the specified `criterion`.
-        4. Performs a backward pass to calculate gradients.
-        5. Updates the model weights using the `optimizer`.
+        
     
+    Description:
+        
     Returns: None
     """
-    model.train()
-    for i, (X, y) in enumerate(data_loader):
-        # training steps
+    discriminator.train()
+    generator.eval()
 
+    correct_clean_label = 1
+    for i, clean_data in enumerate(clean_data_loader):
         # Reset optimizer gradient calculations
         optimizer.zero_grad()
-
-        # Get model predictions (forward pass)
-        y_pred = model.forward(X)
-
+        # Get discriminator prediction
+        discriminator_out = discriminator.forward(clean_data)
         # Calculate loss between model prediction and true labels
-        loss = criterion(y_pred, y)
-
+        loss = criterion(discriminator_out, torch.ones_like(discriminator_out))
         # Perform backward pass
         loss.backward()
+        # Update model weights
+        optimizer.step()
+    
+    correct_denoised_label = 0
+    for i, mixed_data in enumerate(mixed_data_loader):
+        # Reset optimizer gradient calculations
+        optimizer.zero_grad()
+        # Get generator denoised signal (forward pass)
+        generator_out = generator.forward(mixed_data)
+        # Get prediction for discriminator
+        discriminator_out = discriminator.forward(generator_out)
+        # Calculate loss between model prediction and true labels
+        loss = criterion(discriminator_out, torch.zeros_like(discriminator_out))
+        # Perform backward pass
+        loss.backward()
+        # Update model weights
+        optimizer.step()
 
+def generator_train_epoch(mixed_data_loader, criterion, optimizer, discriminator, generator):
+    """
+    Train a discriminator model for one epoch using data from clean_data_loader and 
+    outputs from generator given mixed_data_loader input
+
+    Args:
+        
+    
+    Description:
+        
+    Returns: None
+    """
+    generator.train()
+    discriminator.eval()
+
+    correct_denoised_label = 0
+    target_label_for_generator = 1 - correct_denoised_label
+    for i, mixed_data in enumerate(mixed_data_loader):
+        # Reset optimizer gradient calculations
+        optimizer.zero_grad()
+        # Get generator denoised signal (forward pass)
+        generator_out = generator.forward(mixed_data)
+        # Get prediction for discriminator
+        discriminator_out = discriminator.forward(generator_out)
+        # Calculate loss between model prediction and true labels
+        loss = criterion(discriminator_out, torch.ones_like(discriminator_out))
+        # Perform backward pass
+        loss.backward()
         # Update model weights
         optimizer.step()
 
 
-
-def predictions(logits):
-    """Determine predicted class index given logits.
-
-    args: 
-        logits (torch.Tensor): The model's output logits. It is a 2D tensor of shape (batch_size, num_classes). 
+def predictions(logits, threshold=0.5):
+    """
+    Args:
+        logits: A tensor of shape (batch_size, 1) 
+                containing sigmoid outputs from the discriminator.
 
     Returns:
-        the predicted class output that has the highest probability as a PyTorch Tensor. This should be of size (batch_size,).
+        a tensor rounded to {0, 1}.
     """
-    preds = torch.zeros(logits.shape[0])
-
-    for idx in range(logits.shape[0]) :
-        max_class = -np.inf
-        max_idx = -1
-        for i, logit in enumerate(logits[idx]) :
-            max_class = max(max_class, logit)
-            max_idx = i if max_class == logit else max_idx
-        preds[idx] = max_idx
-
-    return preds
-
+    return (logits >= threshold).float()

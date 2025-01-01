@@ -45,15 +45,15 @@ class DenoisingAE(nn.Module):
                 nn.Conv1d(
                 in_channels, 
                 num_enc_filters, 
-                filter_size, 
+                filter_size,
                 stride=stride,
-                padding=filter_size // stride)
+                padding=(filter_size // stride) - 1)
                 )
             self.encoder_layers.append(nn.BatchNorm1d(num_enc_filters))
             self.encoder_layers.append(nn.LeakyReLU(leakiness, inplace=True))
             in_channels = num_enc_filters
         
-        self.encoder = nn.Sequential(*self.encoders)
+        self.encoder = nn.Sequential(*self.encoder_layers)
 
         # --------------- ^
         #   Encoder Block |
@@ -64,7 +64,7 @@ class DenoisingAE(nn.Module):
         # --------------- v
 
         self.decoder_layers = nn.ModuleList()
-        in_channels = base_channels  # Start from latent space size
+        in_channels = num_enc_filters  # Start from latent space size
 
         for _ in range(num_upsamples):
             self.decoder_layers.append(
@@ -73,8 +73,8 @@ class DenoisingAE(nn.Module):
                     out_channels=num_dec_filters,
                     kernel_size=filter_size,
                     stride=stride,
-                    padding=filter_size // stride,
-                    output_padding=1
+                    padding=(filter_size // stride) - 1,
+                    output_padding=0
                 )
             )
             self.decoder_layers.append(nn.BatchNorm1d(num_dec_filters))
@@ -82,14 +82,14 @@ class DenoisingAE(nn.Module):
             in_channels = num_dec_filters
 
         # Core of decoder block
-        self.decoder = nn.Sequential(*self.decoders)
+        self.decoder = nn.Sequential(*self.decoder_layers)
         
         # Final head of decoder block, to output the (hopefully) clean signal
         self.final_layer = nn.Conv1d(
             in_channels=num_dec_filters, 
             out_channels=out_channels, 
             kernel_size=filter_size, 
-            padding=filter_size // 2
+            padding=(filter_size // 2)
         )
 
         # --------------- ^
@@ -149,5 +149,9 @@ class DenoisingAE(nn.Module):
 
         # Final output layer to restore to the original/desired signal dimension
         x = self.final_layer(x)
+        x = x[..., :1024]
+        # TODO: Find a more elegant mathematical mapping so we don't have to cut-off data
+        print("Generator output shape: ")
+        print(x.shape)
 
         return x

@@ -39,9 +39,9 @@ class AudioDataset(Dataset):
     def __getitem__(self, idx):
         """Return clean or mixed audio sample at index `idx`."""
         if self.task == "target":
-            return torch.from_numpy(self.clean[idx]).float()
+            return torch.from_numpy(self.clean[idx]).float().unsqueeze(0)
         elif self.task == "source":
-            return torch.from_numpy(self.mixed[idx]).float()
+            return torch.from_numpy(self.mixed[idx]).float().unsqueeze(0)
         else:
             raise ValueError(f"Unknown task: {self.task}")
 
@@ -91,7 +91,7 @@ def get_train_val_test_loaders(batch_size, **kwargs):
 
 
 if __name__ == "__main__":
-    batch_size = 1024
+    batch_size = 500
     tr_clean_loader, tr_mixed_loader, va_clean_loader, va_mixed_loader = get_train_val_test_loaders(batch_size)
     
     # Example of how to use the DataLoaders

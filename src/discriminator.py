@@ -45,7 +45,8 @@ class Discriminator(nn.Module):
                 num_filters, 
                 filter_size, 
                 stride=stride,
-                padding=filter_size // stride)
+                padding=(filter_size // stride) - 1
+                )
                 )
             layers.append(nn.BatchNorm1d(num_filters))
             layers.append(nn.LeakyReLU(leakiness, inplace=True))
@@ -105,6 +106,8 @@ class Discriminator(nn.Module):
 
         # Pass through the fully connected layers
         x = self.fc_layers(x)
+        print("Discriminator output shape: ")
+        print(x.shape)
 
         # Return prediction x
         return x
