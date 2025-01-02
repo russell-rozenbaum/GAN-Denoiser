@@ -140,6 +140,7 @@ def generate_gwn(output_dir, amplitude_std=1.0, duration_std=0, sample_rate=1024
         output_file = os.path.join(output_dir, f"noise_{i+1:04d}.npy")
         np.save(output_file, noise)
         #resample_and_write(noise, duration, i)
+        print(output_file)
 
     print(f"Generated {num_files} noise signals in '{output_dir}' directory.")
 
@@ -209,18 +210,16 @@ def generate_mixed_signals(
     snr = [-5, -3, -1, 0, 2, 4, 6]
     
     # Get list of clean and noise files
-    clean_files = [f for f in os.listdir(clean_signals_dir) if f.endswith(".npy")]
-    noise_files = [f for f in os.listdir(noise_signals_dir) if f.endswith(".npy")]
+    clean_files = sorted([f for f in os.listdir(clean_signals_dir) if f.endswith(".npy")])
+    noise_files = sorted([f for f in os.listdir(noise_signals_dir) if f.endswith(".npy")])
 
     i = 0
     # Mixing process
-    for clean_file in clean_files:
+    for clean_file, noise_file in zip(clean_files, noise_files):
         # Read clean signal
         clean_path = os.path.join(clean_signals_dir, clean_file)
         clean_signal = np.load(clean_path)
-
-        # Randomly select a noise file
-        noise_file = random.choice(noise_files)
+        
         noise_path = os.path.join(noise_signals_dir, noise_file)
         noise_signal = np.load(noise_path)
 
@@ -319,17 +318,17 @@ def main():
     # Generate graphical displays of random signals from each directory
     time = np.linspace(0, 1, int(sample_rate * 1), endpoint=False)
     for directory in directories:
-        numpy_files = [f for f in os.listdir(directory) if f.endswith(".npy")]
+        numpy_files = sorted([f for f in os.listdir(directory) if f.endswith(".npy")])
         if numpy_files:
             # Select a random .wav file
-            random_file = random.choice(numpy_files)
-            file_path = os.path.join(directory, random_file)
+            file = numpy_files[0]
+            file_path = os.path.join(directory, file)
             # Read the audio file
             signal = np.load(file_path)
             # Display the signal using the plot_signal function
-            name = f"Random Signal from {directory}"
+            name = f"Signal {file} from {directory}"
             utils.plot_signal(time, signal, name)
-            print(f"Displayed: {random_file} from {directory}")
+            print(f"Displayed: {file} from {directory}")
         else:
             print(f"No .npy files found in {directory}")
 

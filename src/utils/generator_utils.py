@@ -21,7 +21,6 @@ def _adversarial_loss(disc_outputs):
     '''
     gen_losses = (1 - disc_outputs) ** 2  # Tensor of shape (batch_size,)
     mean_loss = torch.mean(gen_losses)  # Scalar tensor
-    print(f"mean loss as: {mean_loss}")
     return mean_loss, gen_losses
 
 def _reconstruction_loss(gen_outputs, clean_signals):
@@ -32,14 +31,14 @@ def _reconstruction_loss(gen_outputs, clean_signals):
         AE Loss style -- generator(mixed_signal) should be as close to
         true clean signal as possible
     '''
-    loss = 0
-    gen_losses = []
-    for denoised_data in gen_outputs:
-        l = abs(denoised_data - clean_signals)
-        gen_losses.append(l)
-        loss += l
     
-    return loss, gen_losses
+    # Calculate the absolute difference (L1 norm) between the generated and clean signals
+    gen_losses = torch.abs(gen_outputs - clean_signals)  # Tensor of shape (batch_size, signal_length)
+    
+    # Mean L1 loss across the batch
+    mean_loss = torch.mean(gen_losses)  # Scalar tensor representing the mean L1 loss
+    
+    return mean_loss * 3, gen_losses
 
 def _generator_loss(gen_outputs, disc_outputs, clean_signals):
     '''
@@ -49,15 +48,17 @@ def _generator_loss(gen_outputs, disc_outputs, clean_signals):
         Uses both adversarial loss from GAN and reconstruction loss in basic AE style
     '''
     adv_loss, adv_gen_losses = _adversarial_loss(disc_outputs)
-    # TODO: Implement passing of clean data
-    recon_loss, recon_gen_losses = 0, 0 #_reconstruction_loss(gen_outputs, clean_signals)
+    recon_loss, recon_gen_losses = _reconstruction_loss(gen_outputs, clean_signals)
 
-    return adv_loss, adv_gen_losses
+    total_gen_loss = adv_loss + recon_loss
+    total_gen_losses = adv_gen_losses + recon_gen_losses
 
-def _get_metrics(mixed_loader, generator, discriminator):
+    return total_gen_loss, total_gen_losses
+
+def _get_metrics(mixed_loader, clean_loader, generator, discriminator):
     correct, total = 0, 0
     running_loss = []
-    for i, mixed_data in enumerate(mixed_loader):
+    for mixed_data, clean_data in zip(mixed_loader, clean_loader) :
         with torch.no_grad():
             # Get model outputs
             generator_out = generator.forward(mixed_data)
@@ -70,7 +71,7 @@ def _get_metrics(mixed_loader, generator, discriminator):
             total += mixed_data.size(0)
 
             # Accumulate loss metrics
-            gen_loss, _ = _generator_loss(generator_out, discriminator_out, [])
+            gen_loss, _ = _generator_loss(generator_out, discriminator_out, clean_data)
             running_loss.append(gen_loss)
 
     loss = np.mean(running_loss)
@@ -84,6 +85,8 @@ def evaluate_epoch(
     discriminator,
     tr_mixed_loader, 
     val_mixed_loader, 
+    tr_clean_loader,
+    val_clean_loader,
     epoch,
     stats,
     axes
@@ -91,8 +94,8 @@ def evaluate_epoch(
     """
     Evaluate the generator on train and validation sets, updating stats with the performance
     """
-    train_loss, train_acc = _get_metrics(tr_mixed_loader, generator, discriminator)
-    val_loss, val_acc = _get_metrics(val_mixed_loader, generator, discriminator)
+    train_loss, train_acc = _get_metrics(tr_mixed_loader, tr_clean_loader, generator, discriminator)
+    val_loss, val_acc = _get_metrics(val_mixed_loader, val_clean_loader, generator, discriminator)
   
     stats_at_epoch = {
         "train_loss": train_loss,
@@ -106,7 +109,7 @@ def evaluate_epoch(
     utils.log_training(epoch, stats, "generator")
     utils.update_training_plot(axes, stats, "generator")
 
-def train_epoch(generator, discriminator, mixed_data_loader, optimizer):
+def train_epoch(generator, discriminator, mixed_data_loader, clean_data_loader, optimizer):
     """
     Train a discriminator model for one epoch using data from clean_data_loader and 
     outputs from generator given mixed_data_loader input
@@ -124,7 +127,7 @@ def train_epoch(generator, discriminator, mixed_data_loader, optimizer):
     total_gen_loss = 0.0
     num_batches = len(mixed_data_loader)
 
-    for i, mixed_data in enumerate(mixed_data_loader):
+    for mixed_data, clean_data in zip(mixed_data_loader, clean_data_loader):
         # Reset optimizer gradients
         optimizer.zero_grad()
 
@@ -135,7 +138,7 @@ def train_epoch(generator, discriminator, mixed_data_loader, optimizer):
         disc_outputs = discriminator(gen_outputs)
 
         # Calculate generator loss using the helper function
-        loss, _ = _generator_loss(gen_outputs, disc_outputs, [])
+        loss, _ = _generator_loss(gen_outputs, disc_outputs, clean_data)
 
         # Backward pass and optimizer step
         loss.backward()

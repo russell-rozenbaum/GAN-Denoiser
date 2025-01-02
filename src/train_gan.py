@@ -25,11 +25,11 @@ def main():
     (tr_clean_loader,
      tr_mixed_loader, 
      val_clean_loader, 
-     val_mixed_loader) = get_train_val_test_loaders(batch_size=64)
+     val_mixed_loader) = get_train_val_test_loaders(batch_size=8)
 
     # Models
-    generator = DenoisingAE(num_enc_filters=6, num_dec_filters=4, num_downsamples=3, num_upsamples=3)
-    discriminator = Discriminator(num_filters=4, num_convolutions=3, fc_units=16)
+    generator = DenoisingAE(num_enc_filters=12, num_dec_filters=12, num_downsamples=4, num_upsamples=4)
+    discriminator = Discriminator(num_filters=4, num_convolutions=3, fc_units=8)
 
     # Hyperparams
     gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4)
@@ -53,6 +53,8 @@ def main():
         discriminator=discriminator,
         tr_mixed_loader=tr_mixed_loader, 
         val_mixed_loader=val_mixed_loader, 
+        tr_clean_loader=tr_clean_loader,
+        val_clean_loader=val_clean_loader,
         epoch=start_epoch,
         stats=generator_stats,
         axes=axes,
@@ -87,6 +89,7 @@ def main():
             generator=generator,
             discriminator=discriminator,
             mixed_data_loader=tr_mixed_loader,
+            clean_data_loader=tr_clean_loader,
             optimizer=gen_optimizer,
         )
 
@@ -108,6 +111,8 @@ def main():
             discriminator=discriminator,
             tr_mixed_loader=tr_mixed_loader, 
             val_mixed_loader=val_mixed_loader, 
+            tr_clean_loader=tr_clean_loader,
+            val_clean_loader=val_clean_loader,
             epoch=epoch,
             stats=generator_stats,
             axes=axes,
