@@ -6,10 +6,13 @@ from torch.utils.data import Dataset, DataLoader
 import utils  # Assuming this is where config() is defined
 
 class AudioDataset(Dataset):
-    """Dataset class for audio signals (clean and mixed signals)."""
+    """
+    Dataset class for audio signals (clean and mixed signals).
+    """
     
     def __init__(self, partition, augment=False):
-        """Initialize the dataset, loading clean and mixed signals.
+        """
+        Initialize the dataset, loading clean and mixed signals.
         
         Args:
             partition (str): The dataset partition ("train", "val").
@@ -31,11 +34,15 @@ class AudioDataset(Dataset):
         self.clean, self.mixed = self._load_data()
 
     def __len__(self):
-        """Return the size of the dataset."""
+        """
+        Return the size of the dataset.
+        """
         return len(self.clean)
 
     def __getitem__(self, idx):
-        """Return clean and mixed audio samples at index `idx`."""
+        """
+        Return clean and mixed audio samples at index `idx`.
+        """
         clean_data = torch.from_numpy(self.clean[idx]).float().unsqueeze(0)
         mixed_data = torch.from_numpy(self.mixed[idx]).float().unsqueeze(0)
         
@@ -46,7 +53,9 @@ class AudioDataset(Dataset):
         return mixed_data, clean_data, mixed_file, clean_file
 
     def _load_data(self):
-        """Load clean and mixed data from disk based on the partition."""
+        """
+        Load clean and mixed data from disk based on the partition.
+        """
         print(f"Loading {self.partition} data...")
 
         # Define the directories for clean and mixed signals
@@ -77,7 +86,9 @@ class AudioDataset(Dataset):
 
 
 def get_train_val_test_loaders(batch_size, **kwargs):
-    """Return DataLoaders for train and val splits for clean and mixed signals."""
+    """
+    Return DataLoaders for train and val splits for clean and mixed signals.
+    """
     
     # Create train and val datasets for clean and mixed signals
     tr_dataset = AudioDataset(partition="train", **kwargs)
