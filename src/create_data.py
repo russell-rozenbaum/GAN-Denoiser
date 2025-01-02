@@ -201,13 +201,11 @@ def generate_sines(
 def generate_mixed_signals(
     noise_signals_dir,
     clean_signals_dir,
-    mixed_signals_dir
+    mixed_signals_dir,
+    snr,
 ) : 
     # Ensure the mixed directory exists
     os.makedirs(mixed_signals_dir, exist_ok=True)
-
-    # TODO: Utilize varying SNRs
-    snr = [-5, -3, -1, 0, 2, 4, 6]
     
     # Get list of clean and noise files
     clean_files = sorted([f for f in os.listdir(clean_signals_dir) if f.endswith(".npy")])
@@ -224,7 +222,7 @@ def generate_mixed_signals(
         noise_signal = np.load(noise_path)
 
         # Mix the audio
-        mixed_signal = mix_audio(clean_signal, noise_signal, snr=snr[6])
+        mixed_signal = mix_audio(clean_signal, noise_signal, snr)
 
         # Save the mixed signal
         mixed_file_name = f"mixed_{os.path.splitext(clean_file)[0]}_{os.path.splitext(noise_file)[0]}.npy"
@@ -237,22 +235,22 @@ def generate_mixed_signals(
 
 
 
-def main():
+def generate(
+        min_freq=10,
+        max_freq=256,
+        num_sine_components=2,
+        snr=6,
+        total_signals=285,
+        tr_split=.9, 
+        val_split=.1
+):
 
     kinds = ["/noise", "/clean", "/mixed"]
     splits = ["data/train", "data/validation"]
 
-    directories = []
-
-    for split in splits :
-        for kind in kinds :
-            # Combine the split and directory into a new path
-            directories.append(split + kind)
+    directories = [split + kind for split in splits for kind in kinds]
 
     sample_rate=1024
-    
-    total_signals = 285
-    tr_split, val_split = .9, .1
     
     # Wipe all directories
     for directory in directories:
@@ -284,9 +282,9 @@ def main():
     # Generate Sinusoidal Compositions
     generate_sines(
         output_dir=directories[1],
-        low_freq=10,
-        high_freq=64,
-        num_components=2,
+        low_freq=min_freq,
+        high_freq=max_freq,
+        num_components=num_sine_components,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,
@@ -294,9 +292,9 @@ def main():
     )
     generate_sines(
         output_dir=directories[4],
-        low_freq=10,
-        high_freq=64,
-        num_components=2,
+        low_freq=min_freq,
+        high_freq=max_freq,
+        num_components=num_sine_components,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,
@@ -307,31 +305,51 @@ def main():
     generate_mixed_signals(
         noise_signals_dir=directories[0],
         clean_signals_dir=directories[1],
-        mixed_signals_dir=directories[2]
+        mixed_signals_dir=directories[2],
+        snr=snr
     )
     generate_mixed_signals(
         noise_signals_dir=directories[3], 
         clean_signals_dir=directories[4], 
-        mixed_signals_dir=directories[5]
+        mixed_signals_dir=directories[5],
+        snr=snr
     )
 
-    # Generate graphical displays of random signals from each directory
+    # Prepare data for plotting
     time = np.linspace(0, 1, int(sample_rate * 1), endpoint=False)
+    signals_to_plot = {}
     for directory in directories:
         numpy_files = sorted([f for f in os.listdir(directory) if f.endswith(".npy")])
         if numpy_files:
-            # Select a random .wav file
-            file = numpy_files[0]
-            file_path = os.path.join(directory, file)
-            # Read the audio file
+            # Select a signal
+            file_path = os.path.join(directory, numpy_files[0])
             signal = np.load(file_path)
-            # Display the signal using the plot_signal function
-            name = f"Signal {file} from {directory}"
-            utils.plot_signal(time, signal, name)
-            print(f"Displayed: {file} from {directory}")
-        else:
-            print(f"No .npy files found in {directory}")
+            dir_parts = directory.split('/')
+            key = f"{dir_parts[-2]}/{dir_parts[-1]}"
+            signals_to_plot[key] = signal
 
+    # Plot with parameters
+    if signals_to_plot:
+        utils.plot_signal_grid(
+            signals_dict=signals_to_plot,
+            time=time,
+            title=f"Generated Signals\nmin_freq={min_freq}, max_freq={max_freq}, num_components={num_sine_components}, snr={snr}, total_signals={total_signals}",
+        )
+    else:
+        print("No signals found to plot.")
+    
+
+def main():
+    generate(
+        min_freq=10,
+        max_freq=64,
+        num_sine_components=3,
+        snr=6,
+        total_signals=285,
+        tr_split=.9, 
+        val_split=.1
+    )
 
 if __name__ == "__main__":
     main()
+

@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import librosa
+import torch
 
 
 def hold_training_plot():
@@ -15,6 +16,18 @@ def hold_training_plot():
     """
     plt.ioff()
     plt.show()
+
+def save_training_plot(save_path="images/performance_plot.png"):
+    """
+    Save the current training plot and keep the program alive to display it.
+    
+    Args:
+        save_path (str): Path to save the performance plot.
+    """
+    # Save the current figure
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)  # Ensure directory exists
+    plt.savefig(save_path, format="png", dpi=300)
+    print(f"Plot saved to {save_path}")
 
 def close_plot():
     """
@@ -159,6 +172,91 @@ def plot_signal(time, amplitude, name) :
     plt.ylabel("Amplitude")
     plt.grid()
     plt.show()
+
+def plot_signal_grid(signals_dict, time, sample_window=100, title="Generated Signals"):
+    """
+    Plot multiple signals in a 2x3 grid and display generation parameters in the title.
+    
+    Args:
+        signals_dict (dict): Dictionary with keys like 'train/noise', 'train/mixed', etc.
+        time (numpy.array): Time array for x-axis.
+        sample_window (int): Number of samples to show in plot.
+        title (str): Title for the entire plot.
+    """
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+    col_titles = ['Clean', 'Noise', 'Mixed']
+    row_titles = ['Training', 'Validation']
+    
+    for i, split in enumerate(['train', 'validation']):
+        for j, signal_type in enumerate(['clean', 'noise', 'mixed']):
+            key = f"{split}/{signal_type}"
+            if key in signals_dict:
+                signal = signals_dict[key]
+                axes[i, j].plot(time[:sample_window], signal[:sample_window])
+                axes[i, j].set_title(f"{row_titles[i]} {col_titles[j]}")
+                axes[i, j].grid(True, alpha=0.3)
+                if j == 0:
+                    axes[i, j].set_ylabel("Amplitude")
+                if i == 1:
+                    axes[i, j].set_xlabel("Time (s)")
+
+    fig.suptitle(title, fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
+
+def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_window=100):
+    """
+    Plot mixed signals, their corresponding clean signals, and denoised signals.
+    
+    Args:
+        generator: The generator model for denoising.
+        val_loader: DataLoader containing validation data.
+        num_examples: Number of examples to plot.
+        sample_window: Number of samples to display in each plot.
+    """
+    import random
+
+    # Initialize the plot grid
+    fig, axes = plt.subplots(num_examples, 3, figsize=(15, 6))
+    col_titles = ['Clean Signal', 'Mixed Signal', 'Denoised Signal']
+    
+    # Iterate over the number of examples
+    for i in range(num_examples):
+        # Fetch a batch of data from the validation loader
+        batch = next(iter(val_loader))
+        mixed_data, clean_data, _, _ = batch  # Assuming batch returns these components
+
+        # Choose a random index from the batch
+        random_idx = random.randint(0, mixed_data.shape[0] - 1)
+        random_mixed_signal = mixed_data[random_idx].squeeze().detach().cpu().numpy()
+        random_clean_signal = clean_data[random_idx].squeeze().detach().cpu().numpy()
+
+        # Generate the denoised signal using the generator
+        with torch.no_grad():
+            generated_signal = generator(torch.tensor(random_mixed_signal[None, None, :], dtype=torch.float32)).cpu().numpy().squeeze()
+
+        # Create a time array for plotting
+        time = np.linspace(0, 1, len(random_mixed_signal), endpoint=False)
+
+        # Plot each signal in its respective column
+        axes[i, 0].plot(time[:sample_window], random_clean_signal[:sample_window])
+        axes[i, 0].set_title(col_titles[0])
+        axes[i, 0].set_ylabel(f"Example {i + 1}")
+        axes[i, 0].grid(alpha=0.3)
+
+        axes[i, 1].plot(time[:sample_window], random_mixed_signal[:sample_window])
+        axes[i, 1].set_title(col_titles[1])
+        axes[i, 1].grid(alpha=0.3)
+
+        axes[i, 2].plot(time[:sample_window], generated_signal[:sample_window])
+        axes[i, 2].set_title(col_titles[2])
+        axes[i, 2].grid(alpha=0.3)
+
+    # Add global title and adjust layout
+    fig.suptitle(title, fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
+
 
 def normalize_signal(signal):
     """
