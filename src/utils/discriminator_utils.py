@@ -30,14 +30,14 @@ def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs):
     # Return as necessary
     return mean_loss, clean_losses, denoised_losses
 
-def _get_metrics(mixed_loader, clean_loader, generator, discriminator):
+def _get_metrics(loader, generator, discriminator):
         
         true_labels, scores = [], []
         correct, total = 0, 0
         running_loss = []
 
         # Discriminator evaluation on denoised data
-        for mixed_data, clean_data in zip(mixed_loader, clean_loader):
+        for mixed_data, clean_data, _, _ in loader:
             '''
             mixed_data and clean_data with shape (Batch_Size, Channel_Size, Sample_Rate)
             Shape: (N, 1, 1024)
@@ -81,10 +81,8 @@ def _get_metrics(mixed_loader, clean_loader, generator, discriminator):
 def evaluate_epoch(
     discriminator,
     generator,
-    tr_mixed_loader, 
-    val_mixed_loader,
-    tr_clean_loader,
-    val_clean_loader,
+    tr_loader,
+    val_loader,
     epoch,
     stats,
     axes
@@ -93,8 +91,8 @@ def evaluate_epoch(
     Evaluate the generator on train and validation sets, updating stats with the performance
     """
 
-    train_loss, train_acc, train_auroc = _get_metrics(tr_mixed_loader, tr_clean_loader, generator, discriminator)
-    val_loss, val_acc, val_auroc = _get_metrics(val_mixed_loader, val_clean_loader, generator, discriminator)
+    train_loss, train_acc, train_auroc = _get_metrics(tr_loader, generator, discriminator)
+    val_loss, val_acc, val_auroc = _get_metrics(val_loader, generator, discriminator)
 
     stats_at_epoch = {
         "train_loss": train_loss,
@@ -109,7 +107,7 @@ def evaluate_epoch(
     utils.log_training(epoch, stats, "discriminator")
     utils.update_training_plot(axes, stats, "discriminator")
 
-def train_epoch(discriminator, generator, mixed_data_loader, clean_data_loader, optimizer):
+def train_epoch(discriminator, generator, tr_loader, optimizer):
     """
     Train a discriminator model for one epoch using data from clean_data_loader and 
     outputs from generator given mixed_data_loader input
@@ -126,11 +124,7 @@ def train_epoch(discriminator, generator, mixed_data_loader, clean_data_loader, 
     discriminator.train()
     generator.eval()
 
-    # Track running losses
-    running_clean_losses = []
-    running_denoised_losses = []
-
-    for mixed_data, clean_data in zip(clean_data_loader, mixed_data_loader):
+    for mixed_data, clean_data, _, _ in tr_loader:
         # Reset optimizer gradient calculations
         optimizer.zero_grad()
         # Get generator output (denoised signal)

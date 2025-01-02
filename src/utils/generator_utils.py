@@ -55,10 +55,10 @@ def _generator_loss(gen_outputs, disc_outputs, clean_signals):
 
     return total_gen_loss, total_gen_losses
 
-def _get_metrics(mixed_loader, clean_loader, generator, discriminator):
+def _get_metrics(loader, generator, discriminator):
     correct, total = 0, 0
     running_loss = []
-    for mixed_data, clean_data in zip(mixed_loader, clean_loader) :
+    for mixed_data, clean_data, _, _ in loader :
         with torch.no_grad():
             # Get model outputs
             generator_out = generator.forward(mixed_data)
@@ -83,10 +83,8 @@ def _get_metrics(mixed_loader, clean_loader, generator, discriminator):
 def evaluate_epoch(
     generator,
     discriminator,
-    tr_mixed_loader, 
-    val_mixed_loader, 
-    tr_clean_loader,
-    val_clean_loader,
+    tr_loader,
+    val_loader,
     epoch,
     stats,
     axes
@@ -94,8 +92,8 @@ def evaluate_epoch(
     """
     Evaluate the generator on train and validation sets, updating stats with the performance
     """
-    train_loss, train_acc = _get_metrics(tr_mixed_loader, tr_clean_loader, generator, discriminator)
-    val_loss, val_acc = _get_metrics(val_mixed_loader, val_clean_loader, generator, discriminator)
+    train_loss, train_acc = _get_metrics(tr_loader, generator, discriminator)
+    val_loss, val_acc = _get_metrics(val_loader, generator, discriminator)
   
     stats_at_epoch = {
         "train_loss": train_loss,
@@ -109,7 +107,7 @@ def evaluate_epoch(
     utils.log_training(epoch, stats, "generator")
     utils.update_training_plot(axes, stats, "generator")
 
-def train_epoch(generator, discriminator, mixed_data_loader, clean_data_loader, optimizer):
+def train_epoch(generator, discriminator, tr_loader, optimizer):
     """
     Train a discriminator model for one epoch using data from clean_data_loader and 
     outputs from generator given mixed_data_loader input
@@ -124,12 +122,11 @@ def train_epoch(generator, discriminator, mixed_data_loader, clean_data_loader, 
     generator.train()
     discriminator.eval()
 
-    total_gen_loss = 0.0
-    num_batches = len(mixed_data_loader)
-
-    for mixed_data, clean_data in zip(mixed_data_loader, clean_data_loader):
+    for mixed_data, clean_data, mixed_file, clean_file in tr_loader:
         # Reset optimizer gradients
         optimizer.zero_grad()
+
+        #print(f"Processing Mixed Data File: {mixed_file}, Clean Data File: {clean_file}")
 
         # Forward pass through the generator
         gen_outputs = generator(mixed_data)
@@ -143,9 +140,3 @@ def train_epoch(generator, discriminator, mixed_data_loader, clean_data_loader, 
         # Backward pass and optimizer step
         loss.backward()
         optimizer.step()
-
-        # Accumulate loss for monitoring
-        total_gen_loss += loss.item()
-
-    # Return average generator loss
-    return total_gen_loss / num_batches
