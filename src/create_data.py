@@ -7,7 +7,7 @@ import os
 from scipy.io.wavfile import read, write
 from scipy.signal import resample
 import random
-import utils
+import utils.utils as utils
 
 def generate_bounds(audio, length):
     """
@@ -252,7 +252,7 @@ def main():
 
     sample_rate=1024
     
-    total_signals = 143
+    total_signals = 285
     tr_split, val_split = .9, .1
     
     # Wipe all directories
@@ -285,9 +285,9 @@ def main():
     # Generate Sinusoidal Compositions
     generate_sines(
         output_dir=directories[1],
-        low_freq=10,
-        high_freq=256,
-        num_components=3,
+        low_freq=20,
+        high_freq=40,
+        num_components=1,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,
@@ -295,9 +295,9 @@ def main():
     )
     generate_sines(
         output_dir=directories[4],
-        low_freq=10,
-        high_freq=256,
-        num_components=3,
+        low_freq=20,
+        high_freq=40,
+        num_components=1,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,

@@ -84,7 +84,7 @@ def make_training_plot(name="GAN Training"):
 
 
 
-def update_training_plot(axes, epoch, stats, model_to_eval):
+def update_training_plot(axes, stats, model_to_eval):
     """
     Args:
         axes: a 2D array of subplots (2 rows, 3 columns)
@@ -152,9 +152,24 @@ def get_mel_spectrogram(file_path, n_mels=128, fmax=8000):
     return S_dB
 
 def plot_signal(time, amplitude, name) :
-    plt.plot(time[:300], amplitude[:300])
+    plt.figure()
+    plt.plot(time[:100], amplitude[:100])
     plt.title(name)
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     plt.grid()
     plt.show()
+
+def normalize_signal(signal):
+    """
+    Normalize the input signal to be between -1 and 1.
+    Args:
+        signal (numpy.ndarray or torch.Tensor): Input signal with arbitrary amplitude values.
+    Returns:
+        numpy.ndarray or torch.Tensor: Normalized signal between -1 and 1.
+    """
+    min_val = signal.min()
+    max_val = signal.max()
+    normalized_signal = 4 * (signal - min_val) / (max_val - min_val) - 2
+    
+    return normalized_signal
