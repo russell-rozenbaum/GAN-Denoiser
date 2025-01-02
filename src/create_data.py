@@ -284,9 +284,9 @@ def main():
     # Generate Sinusoidal Compositions
     generate_sines(
         output_dir=directories[1],
-        low_freq=20,
-        high_freq=40,
-        num_components=1,
+        low_freq=10,
+        high_freq=64,
+        num_components=2,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,
@@ -294,9 +294,9 @@ def main():
     )
     generate_sines(
         output_dir=directories[4],
-        low_freq=20,
-        high_freq=40,
-        num_components=1,
+        low_freq=10,
+        high_freq=64,
+        num_components=2,
         amplitude_std=0,
         duration_std=0,
         sample_rate=sample_rate,

@@ -106,7 +106,8 @@ if __name__ == "__main__":
     
     # Example of how to use the DataLoader
     for mixed_data, clean_data, mixed_file, clean_file in tr_loader:
-        print(f"Clean data batch shape: {clean_data.shape}")
-        print(f"Mixed data batch shape: {mixed_data.shape}")
-        print(f"Processing Mixed Data File: {mixed_file}, Clean Data File: {clean_file}")
+        print(f"\nClean data batch shape: {clean_data.shape}\n")
+        print(f"Mixed data batch shape: {mixed_data.shape}\n")
+        print(f"Processing Mixed Data File: {mixed_file} \n\n Clean Data File: {clean_file}\n")
         break  # Just checking the first batch
+

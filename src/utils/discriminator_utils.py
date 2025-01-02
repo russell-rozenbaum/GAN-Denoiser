@@ -3,7 +3,7 @@ Discriminator utility functions for training and evaluating
 '''
 import numpy as np
 import torch
-from torch.nn.functional import softmax
+import torch.nn.functional as F
 from sklearn import metrics
 from . import utils
 from . import model_common_utils
@@ -16,16 +16,17 @@ def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs):
         - disc_denoised_outputs: Outputs from discriminator on mixed signal input
             Shape: (N, 1)
     '''
-    # Calculate losses
-    clean_losses = (1 - disc_clean_outputs) ** 2  # Tensor of shape (batch_size,)
-    denoised_losses = disc_denoised_outputs ** 2  # Tensor of shape (batch_size,)
+    # Avoid log(0) by adding a small epsilon for numerical stability
+    epsilon = 1e-8
 
-    # Compute mean losses
-    mean_clean_loss = torch.mean(clean_losses)  # Scalar tensor
-    mean_denoised_loss = torch.mean(denoised_losses)  # Scalar tensor
+    # Compute log(D(x)) for real samples
+    clean_losses = torch.log(disc_clean_outputs + epsilon)
 
-    # Combine mean losses
-    mean_loss = (mean_clean_loss + mean_denoised_loss) / 2  # Scalar tensor
+    # Compute log(1 - D(G(z))) for fake samples
+    denoised_losses = torch.log(1 - disc_denoised_outputs + epsilon)
+
+    # Combine mean losses and negate to create maximization problem for discriminator
+    mean_loss = -torch.mean(clean_losses + denoised_losses)
 
     # Return as necessary
     return mean_loss, clean_losses, denoised_losses
@@ -127,16 +128,20 @@ def train_epoch(discriminator, generator, tr_loader, optimizer):
     for mixed_data, clean_data, _, _ in tr_loader:
         # Reset optimizer gradient calculations
         optimizer.zero_grad()
+
         # Get generator output (denoised signal)
         generator_out = generator.forward(mixed_data)
+
         # Get discriminator prediction on denoised data
         discriminator_denoised_out = discriminator.forward(generator_out)
+
         # Get discriminator prediction on clean data
         discriminator_clean_out = discriminator.forward(clean_data)
+
         # Calculate loss between model prediction and true labels (1 for clean)
         disc_loss, _, _ = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out)
-        # Perform backward pass
+
+        # Perform backward pass and optimizer step
         disc_loss.backward()
-        # Update model weights
         optimizer.step()
 

@@ -22,11 +22,11 @@ random.seed(42)
 def main():
     
     # Data Splits
-    tr_loader, val_loader = get_train_val_test_loaders(batch_size=8)
+    tr_loader, val_loader = get_train_val_test_loaders(batch_size=16)
 
     # Models
-    generator = DenoisingAE(num_enc_filters=12, num_dec_filters=12, num_downsamples=4, num_upsamples=4)
-    discriminator = Discriminator(num_filters=4, num_convolutions=3, fc_units=8)
+    generator = DenoisingAE(num_enc_filters=6, num_dec_filters=12, num_downsamples=3, num_upsamples=3)
+    discriminator = Discriminator(num_filters=2, num_convolutions=3, fc_units=8)
 
     # Hyperparams
     gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4)
@@ -67,7 +67,7 @@ def main():
     )
 
     # TODO: Tweak patience hyperparam
-    patience = 50000
+    patience = 20
     # Init patience count and val_losses
     curr_count_to_patience = 0
     prev_gen_val_loss = generator_stats[start_epoch]["val_loss"]
@@ -76,7 +76,7 @@ def main():
     epoch = start_epoch
 
     # While early stopping or max_epochs not reached, alternate between training generator and discriminator
-    while curr_count_to_patience < patience and epoch < 30:
+    while curr_count_to_patience < patience and epoch < 90:
         # Train generator
         gen_utils.train_epoch(
             generator=generator,

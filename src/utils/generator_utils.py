@@ -3,8 +3,7 @@ Generator utility functions for training and evaluating
 '''
 import numpy as np
 import torch
-from torch.nn.functional import softmax
-from sklearn import metrics
+import torch.nn.functional as F
 from . import utils
 from . import model_common_utils
 
@@ -19,8 +18,12 @@ def _adversarial_loss(disc_outputs):
         Simple adversarial loss calculation. How well was generator able to fool
         discriminator into believing it is clean data?
     '''
-    gen_losses = (1 - disc_outputs) ** 2  # Tensor of shape (batch_size,)
+    # Avoid log(0) by adding a small epsilon for numerical stability
+    epsilon = 1e-8
+    # log(1 - D(G(z)))
+    gen_losses = torch.log(1 - disc_outputs + epsilon)
     mean_loss = torch.mean(gen_losses)  # Scalar tensor
+
     return mean_loss, gen_losses
 
 def _reconstruction_loss(gen_outputs, clean_signals):
