@@ -231,7 +231,7 @@ def generate_mixed_signals(
         mixed_file_name = f"mixed_{os.path.splitext(clean_file)[0]}_{os.path.splitext(noise_file)[0]}.npy"
         mixed_path = os.path.join(mixed_signals_dir, mixed_file_name)
         np.save(mixed_path, mixed_signal)
-        resample_and_write(mixed_signal, 1.0, i)
+        #resample_and_write(mixed_signal, 1.0, i)
         i += 1
 
     print(f"{len(clean_files)} mixed audio files saved in '{mixed_signals_dir}'.")

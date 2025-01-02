@@ -32,7 +32,6 @@ def main():
     discriminator = Discriminator(num_filters=4, num_convolutions=3, fc_units=16)
 
     # Hyperparams
-    criterion = torch.nn.BCELoss()
     gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4)
     disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4)
     # TODO: Activate schedulers for decreasing learning rate
@@ -54,7 +53,6 @@ def main():
         discriminator=discriminator,
         tr_mixed_loader=tr_mixed_loader, 
         val_mixed_loader=val_mixed_loader, 
-        criterion=criterion,
         epoch=start_epoch,
         stats=generator_stats,
         axes=axes,
@@ -68,7 +66,6 @@ def main():
         val_mixed_loader=val_mixed_loader, 
         tr_clean_loader=tr_clean_loader,
         val_clean_loader=val_clean_loader,
-        criterion=criterion,
         epoch=start_epoch,
         stats=discriminator_stats,
         axes=axes,
@@ -84,13 +81,12 @@ def main():
     epoch = start_epoch
 
     # While early stopping or max_epochs not reached, alternate between training generator and discriminator
-    while curr_count_to_patience < patience and epoch < 20:
+    while curr_count_to_patience < patience and epoch < 100:
         # Train generator
         gen_utils.train_epoch(
             generator=generator,
             discriminator=discriminator,
             mixed_data_loader=tr_mixed_loader,
-            criterion=criterion, 
             optimizer=gen_optimizer,
         )
 
@@ -100,7 +96,6 @@ def main():
             generator=generator,
             mixed_data_loader=tr_mixed_loader,
             clean_data_loader=tr_clean_loader, 
-            criterion=criterion, 
             optimizer=disc_optimizer,
         )
 
@@ -113,7 +108,6 @@ def main():
             discriminator=discriminator,
             tr_mixed_loader=tr_mixed_loader, 
             val_mixed_loader=val_mixed_loader, 
-            criterion=criterion,
             epoch=epoch,
             stats=generator_stats,
             axes=axes,
@@ -127,7 +121,6 @@ def main():
             val_mixed_loader=val_mixed_loader, 
             tr_clean_loader=tr_clean_loader,
             val_clean_loader=val_clean_loader,
-            criterion=criterion,
             epoch=epoch,
             stats=discriminator_stats,
             axes=axes,
