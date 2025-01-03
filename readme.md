@@ -35,7 +35,7 @@ This is where created noise, sine, and mixed (noise + sine) signals will be stor
 Run create_data.py
 This should result in folders being filled with data, and displaying plots for a random signal from each folder.
 Signals should be displayed as follows (different of course, since they are randomly generated)
-![Created Data](images/generated_data.png)
+![Created Data](images/created_data.png)
 
 Then run dataset.py to verify that everything is working properly (this won't actually do anything to memory)
 
@@ -47,7 +47,7 @@ Fine-tune hyperparameters (generator architecture, discriminator architecture, d
 
 Training on the same dataset from the created data example above, we see the following performance and generator results:
 ![Models Training](images/performance_plot.png)
-![Denoiser Output Examples](images/denoised_output_examples.png)
+![Denoiser Output Examples](images/denoised_examples.png)
 
 ## Architecture
 

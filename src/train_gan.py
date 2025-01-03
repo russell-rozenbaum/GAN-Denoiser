@@ -163,7 +163,7 @@ def train_gan(
     # Plot 2 examples of the generator outputs and save them
     title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}\nepochs={epoch}, max_epochs={max_epochs}, patience={patience}"
     utils.plot_denoising_results(generator=generator, val_loader=val_loader, num_examples=2, title=title)
-    utils.save_plot(save_path="images/denoised_data.png")
+    utils.save_plot(save_path="images/denoised_examples.png")
     utils.hold_plot()
 
 
