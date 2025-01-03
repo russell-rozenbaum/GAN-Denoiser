@@ -8,16 +8,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import librosa
 import torch
+import random
 
 
-def hold_training_plot():
+def hold_plot():
     """
     Keep the program alive to display the training plot
     """
     plt.ioff()
     plt.show()
 
-def save_training_plot(save_path="images/performance_plot.png"):
+def save_plot(save_path):
     """
     Save the current training plot and keep the program alive to display it.
     
@@ -164,16 +165,7 @@ def get_mel_spectrogram(file_path, n_mels=128, fmax=8000):
     S_dB = librosa.power_to_db(S, ref=np.max)
     return S_dB
 
-def plot_signal(time, amplitude, name) :
-    plt.figure()
-    plt.plot(time[:100], amplitude[:100])
-    plt.title(name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Amplitude")
-    plt.grid()
-    plt.show()
-
-def plot_signal_grid(signals_dict, time, sample_window=100, title="Generated Signals"):
+def plot_signal_grid(signals_dict, time, sample_window=120, title="Generated Signals"):
     """
     Plot multiple signals in a 2x3 grid and display generation parameters in the title.
     
@@ -183,7 +175,7 @@ def plot_signal_grid(signals_dict, time, sample_window=100, title="Generated Sig
         sample_window (int): Number of samples to show in plot.
         title (str): Title for the entire plot.
     """
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+    fig, axes = plt.subplots(2, 3, figsize=(15, 6))
     col_titles = ['Clean', 'Noise', 'Mixed']
     row_titles = ['Training', 'Validation']
     
@@ -202,9 +194,11 @@ def plot_signal_grid(signals_dict, time, sample_window=100, title="Generated Sig
 
     fig.suptitle(title, fontsize=14)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+    
+    plt.ion()  # Turn on interactive mode
+    plt.pause(0.001)  # Small pause to render
 
-def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_window=100):
+def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_window=120):
     """
     Plot mixed signals, their corresponding clean signals, and denoised signals.
     
@@ -255,7 +249,10 @@ def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_
     # Add global title and adjust layout
     fig.suptitle(title, fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+    
+    # Don't show the plot immediately - let the caller handle display/save
+    plt.ion()  # Turn on interactive mode
+    plt.pause(0.001)  # Small pause to render
 
 
 def normalize_signal(signal):

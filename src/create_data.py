@@ -335,6 +335,8 @@ def generate(
             time=time,
             title=f"Generated Signals\nmin_freq={min_freq}, max_freq={max_freq}, num_components={num_sine_components}, snr={snr}, total_signals={total_signals}",
         )
+        utils.save_plot("images/created_data.png")
+        utils.hold_plot()
     else:
         print("No signals found to plot.")
     
@@ -343,7 +345,7 @@ def main():
     generate(
         min_freq=10,
         max_freq=64,
-        num_sine_components=3,
+        num_sine_components=5,
         snr=6,
         total_signals=285,
         tr_split=.9, 

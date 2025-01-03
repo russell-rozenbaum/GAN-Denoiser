@@ -157,16 +157,14 @@ def train_gan(
     print("Finished Training")
 
     # Save the performance training plot
-    utils.save_training_plot(save_path="images/performance_plot.png")
-    utils.hold_training_plot()
+    utils.save_plot(save_path="images/performance_plot.png")
+    utils.hold_plot()
 
-    # Plot 2 examples of the generator outputs
-    title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}"
+    # Plot 2 examples of the generator outputs and save them
+    title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}\nepochs={epoch}, max_epochs={max_epochs}, patience={patience}"
     utils.plot_denoising_results(generator=generator, val_loader=val_loader, num_examples=2, title=title)
-    utils.save_training_plot(save_path="images/denoised_data.png")
-
-    return generator, discriminator, tr_loader, val_loader
-
+    utils.save_plot(save_path="images/denoised_data.png")
+    utils.hold_plot()
 
 
 def main() :
@@ -181,7 +179,7 @@ def main() :
         num_convolutions=3,
         num_fc_units=8,
         # Training hyperparams
-        max_epochs=1,
+        max_epochs=100,
         patience=20,
         batch_size=16,
     )

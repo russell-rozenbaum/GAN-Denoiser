@@ -43,9 +43,9 @@ Now we can run train_gan.py
 
 Fine-tune hyperparameters (generator architecture, discriminator architecture, data creation parameters, training parameters) as desired.
 
+## Example
 
-
-Training on the same dataset from the example above, we see the following performance and generator results:
+Training on the same dataset from the created data example above, we see the following performance and generator results:
 ![Models Training](images/performance_plot.png)
 ![Denoiser Output Examples](images/denoised_output_examples.png)
 
