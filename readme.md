@@ -13,8 +13,9 @@ Can assumably be extended to train on sample rates of up to 44100Hz when given p
 
 ## Setup
 
-Setup data folder as follows:
+Install dependencies in requirements.txt
 
+Setup a data folder as follows:
 ```
 GAN-Denoiser
 ├── data
@@ -29,8 +30,9 @@ GAN-Denoiser
 │       └── noise
 └── ...
 ```
+This is where created noise, sine, and mixed (noise + sine) signals will be stored.
 
-Then run create_data.py
+Run create_data.py
 This should result in folders being filled with data, and displaying plots for a random signal from each folder.
 Signals should be displayed as follows (different of course, since they are randomly generated)
 ![Created Data](images/generated_data.png)
@@ -39,10 +41,13 @@ Then run dataset.py to verify that everything is working properly (this won't ac
 
 Now we can run train_gan.py
 
+Fine-tune hyperparameters (generator architecture, discriminator architecture, data creation parameters, training parameters) as desired.
+
+
+
 Training on the same dataset from the example above, we see the following performance and generator results:
 ![Models Training](images/performance_plot.png)
 ![Denoiser Output Examples](images/denoised_output_examples.png)
-
 
 ## Architecture
 
@@ -56,36 +61,13 @@ The Generator is an autoencoder based strongly off of [this article](https://www
 
 ### Discriminator
 
-The Discriminator is tasked with distinguishing clean signals part from faux clean signals (denoised signals). 
+The Discriminator is tasked with distinguishing clean signals apart from faux clean signals (denoised signals produced by the generator). 
 
 ### Training
 
-The Discriminator is trained in classic GAN fashion, as a maxmization problem of the following:
+The Discriminator is trained in classic GAN fashion, using the BCE loss between clean signals and denoised signals.
 
-$$
-\mathcal{L}_D = - \frac{1}{N} \sum_{i=1}^N (log(D(x^{(i)})) + log(D(1 - G(z^{(i)}))))
-$$
-
-The Generator, however, is trained on a hybrid loss function, using both adversarial loss, just as so in a standard GAN, but also reconstruction loss. It is formulated as a minimization problem as follows:
-
-$$
-\mathcal{L}_G = (\mathcal{L}_G_adv + \mathcal{L}_G_recon)
-$$
-$$
-\mathcal{L}_G_adv = \frac{1}{N} \sum_{i=1}^N log(D(1 - G(z^{(i)})))
-$$
-$$
-\mathcal{L}_G_recon = \frac{1}{N} \sum_{i=1}^N (G(z^{(i)} - x^{(i)})
-$$
-
-## To-do
-
-Board of areas to improve/fix:
-- Redefine discriminator training to avoid training and evaluating on corresponding clean and mixed signals. The problem here is that to perform reconstruction loss, the Data Loaders are set up such that each mixed signal is aligned and ordered to go with it's true clean signal. We don't need this (and probably would prefer to avoid it) when training the discriminator though, as ordering here is pointless, and could be harmful as we risk the discriminator learning the ordering. 
-- Update readme with legible and information-rich plots
-
-### Except
-Except I am still working on properly implementing the GAN trainingand evaluation process... trained denoiser outputs are currently... not the greatest
+The Generator, however, is trained on a hybrid loss function. It uses adversarial loss, just as so in a standard GAN, but also reconstruction loss. The adversarial loss is just BCE loss upon how well it "fools" the discriminator. The reconstruction loss is the L1 Norm between the clean signal and the generated denoised signal. 
 
 ## Ideas
 

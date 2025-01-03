@@ -19,30 +19,35 @@ np.random.seed(42)
 random.seed(42)
 
 
-def main():
+def train_gan(
+    # Generator params
+    num_enc_filters=6,
+    num_dec_filters=12,
+    num_upsamples_and_downsamples=3,
+    # Discriminator params
+    num_filters=2,
+    num_convolutions=3,
+    num_fc_units=8,
+    # Training hyperparams
+    max_epochs=100,
+    patience=20,
+    batch_size=16,
+):
 
-    num_enc_filters = 6
-    num_dec_filters = 12
-    downup_samples = 3
-
-    num_filters = 2
-    num_conv = 3
-    num_fc_units = 8
-    
     # Data Splits
-    tr_loader, val_loader = get_train_val_test_loaders(batch_size=16)
+    tr_loader, val_loader = get_train_val_test_loaders(batch_size=batch_size)
 
     # Models
     generator = DenoisingAE(
         num_enc_filters=num_enc_filters, 
         num_dec_filters=num_dec_filters, 
-        num_downsamples=downup_samples, 
-        num_upsamples=downup_samples
+        num_downsamples=num_upsamples_and_downsamples, 
+        num_upsamples=num_upsamples_and_downsamples
     )
 
     discriminator = Discriminator(
         num_filters=num_filters,
-        num_convolutions=num_conv, 
+        num_convolutions=num_convolutions, 
         fc_units=num_fc_units
     )
 
@@ -84,8 +89,6 @@ def main():
         axes=axes,
     )
 
-    # TODO: Tweak patience hyperparam
-    patience = 20
     # Init patience count and val_losses
     curr_count_to_patience = 0
     prev_gen_val_loss = generator_stats[start_epoch]["val_loss"]
@@ -94,7 +97,7 @@ def main():
     epoch = start_epoch
 
     # While early stopping or max_epochs not reached, alternate between training generator and discriminator
-    while curr_count_to_patience < patience and epoch < 90:
+    while curr_count_to_patience < patience and epoch < max_epochs:
         # Train generator
         gen_utils.train_epoch(
             generator=generator,
@@ -149,22 +152,39 @@ def main():
         gen_scheduler.step()
         disc_scheduler.step()
 
+    # Training finsihed
+    print("Max epochs reached") if epoch >= max_epochs else print("Patience reached")
     print("Finished Training")
 
+    # Save the performance training plot
     utils.save_training_plot(save_path="images/performance_plot.png")
-
-    # Close any existing plots
-    utils.close_plot()
-
-    # Call the plotting utility function
-    title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/up_samples={downup_samples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_conv}, fc_units={num_fc_units}"
-    utils.plot_denoising_results(generator=generator, val_loader=val_loader, num_examples=2, title=title)
-
-
-    # Save figure and keep plot open
     utils.hold_training_plot()
 
+    # Plot 2 examples of the generator outputs
+    title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}"
+    utils.plot_denoising_results(generator=generator, val_loader=val_loader, num_examples=2, title=title)
+    utils.save_training_plot(save_path="images/denoised_data.png")
 
+    return generator, discriminator, tr_loader, val_loader
+
+
+
+def main() :
+
+    train_gan(
+        # Generator params
+        num_enc_filters=6,
+        num_dec_filters=12,
+        num_upsamples_and_downsamples=3,
+        # Discriminator params
+        num_filters=2,
+        num_convolutions=3,
+        num_fc_units=8,
+        # Training hyperparams
+        max_epochs=1,
+        patience=20,
+        batch_size=16,
+    )
 
 
 if __name__ == "__main__":

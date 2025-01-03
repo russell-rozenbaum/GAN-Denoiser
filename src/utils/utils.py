@@ -224,7 +224,7 @@ def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_
     for i in range(num_examples):
         # Fetch a batch of data from the validation loader
         batch = next(iter(val_loader))
-        mixed_data, clean_data, _, _ = batch  # Assuming batch returns these components
+        mixed_data, clean_data, _, _ = batch 
 
         # Choose a random index from the batch
         random_idx = random.randint(0, mixed_data.shape[0] - 1)
