@@ -330,12 +330,12 @@ def generate(
 def main():
     generate(
         min_freq=10,
-        max_freq=60,
+        max_freq=128,
         num_sine_components=2,
-        snr=-2,
-        total_signals=285,
-        tr_split=.9, 
-        val_split=.1
+        snr=-4,
+        total_signals=4500,
+        tr_split=(8/9), 
+        val_split=(1/9)
     )
 
 if __name__ == "__main__":

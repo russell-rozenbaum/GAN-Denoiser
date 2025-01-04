@@ -56,7 +56,7 @@ class DenoisingAE(nn.Module):
                 padding=(filter_size // stride) - 1)
                 )
             self.encoder_layers.append(nn.BatchNorm1d(num_enc_filters))
-            self.encoder_layers.append(nn.LeakyReLU(leakiness, inplace=True))
+            self.encoder_layers.append(nn.LeakyReLU(leakiness))
             in_channels = num_enc_filters
         
         self.encoder = nn.Sequential(*self.encoder_layers)
@@ -84,7 +84,7 @@ class DenoisingAE(nn.Module):
                 )
             )
             self.decoder_layers.append(nn.BatchNorm1d(num_dec_filters))
-            self.decoder_layers.append(nn.LeakyReLU(leakiness, inplace=True))
+            self.decoder_layers.append(nn.LeakyReLU(leakiness))
             in_channels = num_dec_filters
 
         # Core of decoder block

@@ -370,7 +370,7 @@ def resample_and_write(signal, name, duration=1., output_dir="data/resampled") :
     write(output_file, target_sample_rate, resampled_noise_int16)
 
     
-def apply_lowpass_filter(audio_signal, sr=1024, passband_freq=55, stopband_freq=90, 
+def apply_lowpass_filter(audio_signal, sr=1024, passband_freq=128, stopband_freq=160, 
                         passband_ripple=0.05, stopband_attenuation=60):
     """
     Apply a Butterworth lowpass filter to an audio signal.

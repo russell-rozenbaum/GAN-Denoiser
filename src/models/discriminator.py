@@ -53,7 +53,7 @@ class Discriminator(nn.Module):
                 )
                 )
             layers.append(nn.BatchNorm1d(num_filters))
-            layers.append(nn.LeakyReLU(leakiness, inplace=True))
+            layers.append(nn.LeakyReLU(leakiness))
             in_channels = num_filters
         
         self.conv_blocks = nn.Sequential(*layers)
