@@ -25,11 +25,11 @@ class DenoisingAE(nn.Module):
         signal_length: int = 1024, # i.e. sample rate * lowest duration of audio
         num_enc_filters: int = 64,
         num_dec_filters: int = 128,
-        filter_size: int = 128,
+        filter_size: int = 64,
         stride: int = 2,
         num_downsamples: int = 5,
         num_upsamples: int = 5,
-        leakiness: float = 0.3,
+        leakiness: float = 0.05,
         gamma=1,
         rho=1,
     ):
@@ -155,7 +155,7 @@ class DenoisingAE(nn.Module):
 
         # Final output layer to restore to the original/desired signal dimension
         x = self.final_layer(x)
-        x = x[..., :1024]
+        x = x[..., :256]
         # TODO: Find a more elegant mathematical mapping so we don't have to cut-off data
 
         return x

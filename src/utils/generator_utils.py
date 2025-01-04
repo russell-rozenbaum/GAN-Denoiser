@@ -137,9 +137,10 @@ def train_epoch(generator, discriminator, tr_loader, optimizer):
         disc_outputs = discriminator(gen_outputs)
 
         # Calculate generator loss using the helper function
-        loss = _generator_loss(gen_outputs, disc_outputs, clean_data)
+        adv_loss = _adversarial_loss(disc_outputs)
+        recon_loss = _reconstruction_loss(gen_outputs, clean_data)
 
-        loss *= generator.rho
+        loss = (adv_loss * generator.gamma) + (recon_loss * generator.rho)
 
         # Backward pass and optimizer step
         loss.backward()

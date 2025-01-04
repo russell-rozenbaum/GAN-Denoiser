@@ -35,7 +35,8 @@ def train_gan(
     lr=1e-4,
     gamma=1,
     rho=3,
-    delta=1
+    delta=1,
+    signal_length=1024
 ):
 
     # Data Splits
@@ -43,6 +44,7 @@ def train_gan(
 
     # Models
     generator = DenoisingAE(
+        signal_length=signal_length,
         num_enc_filters=num_enc_filters, 
         num_dec_filters=num_dec_filters, 
         num_downsamples=num_upsamples_and_downsamples, 
@@ -52,6 +54,7 @@ def train_gan(
     )
 
     discriminator = Discriminator(
+        signal_length=signal_length,
         num_filters=num_filters,
         num_convolutions=num_convolutions, 
         fc_units=num_fc_units,
@@ -62,7 +65,7 @@ def train_gan(
     gen_optimizer = torch.optim.Adam(generator.parameters(), lr=lr)
     disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr)
     # TODO: Activate schedulers for decreasing learning rate
-    gen_scheduler = StepLR(gen_optimizer, step_size=25, gamma=.5)
+    gen_scheduler = StepLR(gen_optimizer, step_size=50, gamma=.5)
     disc_scheduler = StepLR(disc_optimizer, step_size=25, gamma=.5)
 
     print("Number of float-valued parameters in DenoisingAE:", model_utils.count_parameters(generator))
@@ -177,21 +180,22 @@ def main() :
 
     train_gan(
         # Generator params
-        num_enc_filters=16,
-        num_dec_filters=32,
-        num_upsamples_and_downsamples=4,
+        num_enc_filters=12,
+        num_dec_filters=24,
+        num_upsamples_and_downsamples=3,
         # Discriminator params
-        num_filters=16,
-        num_convolutions=3,
-        num_fc_units=32,
+        num_filters=2,
+        num_convolutions=2,
+        num_fc_units=12,
         # Training hyperparams
-        max_epochs=100,
-        patience=100,
-        batch_size=125,
-        lr=1e-4,
+        max_epochs=200,
+        patience=50,
+        batch_size=25,
+        lr=5e-4,
         gamma=1,
         rho=3,
-        delta=1
+        delta=1,
+        signal_length=256,
     )
 
 

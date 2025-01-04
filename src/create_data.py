@@ -220,6 +220,7 @@ def generate_mixed_signals(
 
 
 def generate(
+        sample_rate=1024,
         min_freq=10,
         max_freq=256,
         num_sine_components=2,
@@ -233,8 +234,6 @@ def generate(
     splits = ["data/train", "data/validation"]
 
     directories = [split + kind for split in splits for kind in kinds]
-
-    sample_rate=1024
     
     # Wipe all directories
     for directory in directories:
@@ -329,13 +328,14 @@ def generate(
 
 def main():
     generate(
+        sample_rate=256,
         min_freq=10,
-        max_freq=128,
+        max_freq=64,
         num_sine_components=2,
-        snr=-4,
-        total_signals=4500,
+        snr=-2,
+        total_signals=900,
         tr_split=(8/9), 
-        val_split=(1/9)
+        val_split=(1/9),
     )
 
 if __name__ == "__main__":

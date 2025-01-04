@@ -323,7 +323,7 @@ def plot_generator_against_lowpass(generator, val_loader, num_examples=2, sample
 
         # Plot frequency spectra in the second row
         for col, signal in enumerate([clean_signal, mixed_signal, generated_signal, filtered_signal]):
-            axes[1, col].plot(np.linspace(0, 500, len(signal)//2), 
+            axes[1, col].plot(np.linspace(0, 128, len(signal)//2), 
                               np.abs(np.fft.fft(signal))[:len(signal)//2])
             axes[1, col].set_title(freq_titles[col])
             axes[1, col].grid(True, alpha=0.3)
@@ -370,7 +370,7 @@ def resample_and_write(signal, name, duration=1., output_dir="data/resampled") :
     write(output_file, target_sample_rate, resampled_noise_int16)
 
     
-def apply_lowpass_filter(audio_signal, sr=1024, passband_freq=128, stopband_freq=160, 
+def apply_lowpass_filter(audio_signal, sr=256, passband_freq=64, stopband_freq=100, 
                         passband_ripple=0.05, stopband_attenuation=60):
     """
     Apply a Butterworth lowpass filter to an audio signal.
