@@ -10,26 +10,26 @@ from . import model_common_utils
 
 def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs):
     '''
-    Inputs:
-        - disc_clean_outputs: Outputs from discriminator on clean signal input
-            Shape: (N, 1)
-        - disc_denoised_outputs: Outputs from discriminator on mixed signal input
-            Shape: (N, 1)
+    Standard GAN discriminator loss: maximize log(D(x)) + log(1 - D(G(z)))
+    
+    Args:
+        disc_clean_outputs: Discriminator outputs on real (clean) data, shape (N, 1)
+        disc_denoised_outputs: Discriminator outputs on fake (denoised/generated) data, shape (N, 1)
+        delta: Scaling factor for loss
     '''
     # Avoid log(0) by adding a small epsilon for numerical stability
     epsilon = 1e-8
-
-    # Compute log(D(x)) for real samples
-    clean_losses = torch.log(disc_clean_outputs + epsilon)
-
-    # Compute log(1 - D(G(z))) for fake samples
-    denoised_losses = torch.log(1 - disc_denoised_outputs + epsilon)
-
-    # Combine mean losses and negate to create maximization problem for discriminator
-    mean_loss = -torch.mean(clean_losses + denoised_losses)
-
-    # Return as necessary
-    return mean_loss, clean_losses, denoised_losses
+    
+    # For real samples: maximize log(D(x))
+    clean_loss = -torch.mean(torch.log(disc_clean_outputs + epsilon))
+    
+    # For fake samples: maximize log(1 - D(G(z)))
+    denoised_loss = -torch.mean(torch.log(1 - disc_denoised_outputs + epsilon))
+    
+    # Total loss (negative since we want to maximize)
+    total_loss = (clean_loss + denoised_loss)
+    
+    return total_loss
 
 def _get_metrics(loader, generator, discriminator):
         
@@ -66,7 +66,7 @@ def _get_metrics(loader, generator, discriminator):
                 scores.append(disc_clean_out.data.view(-1))
 
                 # Accumulate losses for average loss calculation
-                disc_loss, _, _ = _discriminator_loss(disc_denoised_out, disc_clean_out)
+                disc_loss = _discriminator_loss(disc_denoised_out, disc_clean_out)
                 running_loss.append(disc_loss)
 
         true = torch.cat(true_labels)
@@ -139,9 +139,8 @@ def train_epoch(discriminator, generator, tr_loader, optimizer):
         discriminator_clean_out = discriminator.forward(clean_data)
 
         # Calculate loss between model prediction and true labels (1 for clean)
-        disc_loss, _, _ = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out)
+        disc_loss = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out)
 
         # Perform backward pass and optimizer step
         disc_loss.backward()
         optimizer.step()
-

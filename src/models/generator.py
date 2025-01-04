@@ -30,8 +30,14 @@ class DenoisingAE(nn.Module):
         num_downsamples: int = 5,
         num_upsamples: int = 5,
         leakiness: float = 0.3,
+        gamma=1,
+        rho=1,
     ):
         super().__init__()
+
+        # Adversarial and Reconstruction Loss Multipliers, respectively
+        self.gamma=gamma
+        self.rho=rho
 
         # --------------- |
         #   Encoder Block |

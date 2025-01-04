@@ -32,6 +32,10 @@ def train_gan(
     max_epochs=100,
     patience=20,
     batch_size=16,
+    lr=1e-4,
+    gamma=1,
+    rho=3,
+    delta=1
 ):
 
     # Data Splits
@@ -42,30 +46,37 @@ def train_gan(
         num_enc_filters=num_enc_filters, 
         num_dec_filters=num_dec_filters, 
         num_downsamples=num_upsamples_and_downsamples, 
-        num_upsamples=num_upsamples_and_downsamples
+        num_upsamples=num_upsamples_and_downsamples,
+        gamma=gamma,
+        rho=rho
     )
 
     discriminator = Discriminator(
         num_filters=num_filters,
         num_convolutions=num_convolutions, 
-        fc_units=num_fc_units
+        fc_units=num_fc_units,
+        delta=delta
     )
 
     # Hyperparams
-    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4)
-    disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4)
+    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=lr)
+    disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr)
     # TODO: Activate schedulers for decreasing learning rate
-    gen_scheduler = StepLR(gen_optimizer, step_size=40, gamma=np.sqrt(10)/10)
-    disc_scheduler = StepLR(disc_optimizer, step_size=40, gamma=np.sqrt(10)/10)
+    gen_scheduler = StepLR(gen_optimizer, step_size=40, gamma=.5)
+    disc_scheduler = StepLR(disc_optimizer, step_size=40, gamma=.5)
 
     print("Number of float-valued parameters in DenoisingAE:", model_utils.count_parameters(generator))
     print("Number of float-valued parameters in Discriminator:", model_utils.count_parameters(discriminator))
 
-    # Make training plot for generator and discriminator stats
-    axes = utils.make_training_plot()
+    # TODO: Implement checkpoint loading and consequently start_epoch loading
     start_epoch = 0
+    epoch = start_epoch
     generator_stats = []
     discriminator_stats = []
+
+    # Make training plot for generator and discriminator stats
+    name = f"GAN Training\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}\nmax_epochs={max_epochs}, patience={patience}"
+    axes = utils.make_training_plot(name)
 
     # Init generator stats
     gen_utils.evaluate_epoch(
@@ -94,10 +105,8 @@ def train_gan(
     prev_gen_val_loss = generator_stats[start_epoch]["val_loss"]
     prev_disc_val_loss = discriminator_stats[start_epoch]["val_loss"]
 
-    epoch = start_epoch
-
     # While early stopping or max_epochs not reached, alternate between training generator and discriminator
-    while curr_count_to_patience < patience and epoch < max_epochs:
+    while curr_count_to_patience < (patience*2) and epoch < max_epochs:
         # Train generator
         gen_utils.train_epoch(
             generator=generator,
@@ -161,27 +170,28 @@ def train_gan(
     utils.hold_plot()
 
     # Plot 2 examples of the generator outputs and save them
-    title = f"Clean/Mixed/Denoised Signals\nGenerator Params: num_enc_filters={num_enc_filters}, num_dec_filters={num_dec_filters}, num_down/upsamples={num_upsamples_and_downsamples}\nDiscriminator Params: num_filters={num_filters}, convolutional_layers={num_convolutions}, fc_units={num_fc_units}\nepochs={epoch}, max_epochs={max_epochs}, patience={patience}"
-    utils.plot_denoising_results(generator=generator, val_loader=val_loader, num_examples=2, title=title)
-    utils.save_plot(save_path="images/denoised_examples.png")
-    utils.hold_plot()
+    utils.plot_generator_against_lowpass(generator=generator, val_loader=val_loader, num_examples=2)
 
 
 def main() :
 
     train_gan(
         # Generator params
-        num_enc_filters=6,
-        num_dec_filters=12,
+        num_enc_filters=8,
+        num_dec_filters=16,
         num_upsamples_and_downsamples=3,
         # Discriminator params
         num_filters=2,
         num_convolutions=3,
         num_fc_units=8,
         # Training hyperparams
-        max_epochs=100,
+        max_epochs=200,
         patience=20,
         batch_size=16,
+        lr=1e-4,
+        gamma=1,
+        rho=3,
+        delta=1
     )
 
 

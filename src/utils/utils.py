@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import librosa
 import torch
-import random
+from scipy.io.wavfile import write
+from scipy.signal import resample
+from scipy import signal
 
 
 def hold_plot():
@@ -65,7 +67,7 @@ def make_training_plot(name="GAN Training"):
        Each subplot shows train vs. val curves in different colors.
     """
     plt.ion()
-    fig, axes = plt.subplots(2, 3, figsize=(18, 8))  
+    fig, axes = plt.subplots(2, 2, figsize=(18, 8))  
     # 2 rows (Generator, Discriminator) x 3 columns (Loss, Accuracy, AUROC)
 
     # Give an overall title
@@ -89,9 +91,11 @@ def make_training_plot(name="GAN Training"):
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].set_ylabel("Accuracy")
 
+    '''
     axes[1, 2].set_title("Discriminator AUROC")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].set_ylabel("AUROC")
+    '''
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # leave space for suptitle
     return axes
@@ -146,6 +150,7 @@ def update_training_plot(axes, stats, model_to_eval):
     axes[row, 1].set_ylabel("Accuracy")
     axes[row, 1].legend()
 
+    '''
     if model_to_eval == "discriminator":
         # AUROC Subplot
         axes[row, 2].clear()
@@ -155,6 +160,7 @@ def update_training_plot(axes, stats, model_to_eval):
         axes[row, 2].set_xlabel("Epoch")
         axes[row, 2].set_ylabel("AUROC")
         axes[row, 2].legend()
+    '''
 
     plt.tight_layout()
     plt.pause(0.001)
@@ -198,61 +204,143 @@ def plot_signal_grid(signals_dict, time, sample_window=120, title="Generated Sig
     plt.ion()  # Turn on interactive mode
     plt.pause(0.001)  # Small pause to render
 
-def plot_denoising_results(generator, val_loader, title, num_examples=2, sample_window=120):
+
+def plot_denoising_results_against_filter(generator, val_loader, title, num_examples=2, sample_window=120):
     """
-    Plot mixed signals, their corresponding clean signals, and denoised signals.
+    Plot mixed signals, clean signals, denoised signals, and lowpass filtered signals.
     
     Args:
-        generator: The generator model for denoising.
-        val_loader: DataLoader containing validation data.
-        num_examples: Number of examples to plot.
-        sample_window: Number of samples to display in each plot.
+        generator: The generator model for denoising
+        val_loader: DataLoader containing validation data
+        title (str): Title for the plot
+        num_examples (int): Number of examples to plot
+        sample_window (int): Number of samples to display in each plot
     """
-    import random
-
-    # Initialize the plot grid
-    fig, axes = plt.subplots(num_examples, 3, figsize=(15, 6))
-    col_titles = ['Clean Signal', 'Mixed Signal', 'Denoised Signal']
+    # Initialize the plot grid - now with 4 columns
+    fig, axes = plt.subplots(num_examples, 4, figsize=(20, 6))
+    col_titles = ['Clean Signal', 'Mixed Signal', 'Denoised Signal', 'Lowpass Filtered']
     
-    # Iterate over the number of examples
     for i in range(num_examples):
-        # Fetch a batch of data from the validation loader
+        # Fetch a batch of data
         batch = next(iter(val_loader))
-        mixed_data, clean_data, _, _ = batch 
-
+        mixed_data, clean_data, _, _ = batch
+        
         # Choose a random index from the batch
-        random_idx = random.randint(0, mixed_data.shape[0] - 1)
+        random_idx = np.random.randint(0, mixed_data.shape[0])
         random_mixed_signal = mixed_data[random_idx].squeeze().detach().cpu().numpy()
         random_clean_signal = clean_data[random_idx].squeeze().detach().cpu().numpy()
-
-        # Generate the denoised signal using the generator
+        
+        # Generate denoised signal
         with torch.no_grad():
-            generated_signal = generator(torch.tensor(random_mixed_signal[None, None, :], dtype=torch.float32)).cpu().numpy().squeeze()
-
-        # Create a time array for plotting
+            generated_signal = generator(
+                torch.tensor(random_mixed_signal[None, None, :], dtype=torch.float32)
+            ).cpu().numpy().squeeze()
+        
+        # Apply lowpass filter
+        filtered_signal = apply_lowpass_filter(random_mixed_signal)
+        
+        # Create time array for plotting
         time = np.linspace(0, 1, len(random_mixed_signal), endpoint=False)
-
-        # Plot each signal in its respective column
-        axes[i, 0].plot(time[:sample_window], random_clean_signal[:sample_window])
-        axes[i, 0].set_title(col_titles[0])
-        axes[i, 0].set_ylabel(f"Example {i + 1}")
-        axes[i, 0].grid(alpha=0.3)
-
-        axes[i, 1].plot(time[:sample_window], random_mixed_signal[:sample_window])
-        axes[i, 1].set_title(col_titles[1])
-        axes[i, 1].grid(alpha=0.3)
-
-        axes[i, 2].plot(time[:sample_window], generated_signal[:sample_window])
-        axes[i, 2].set_title(col_titles[2])
-        axes[i, 2].grid(alpha=0.3)
-
+        
+        # Save audio files
+        resample_and_write(signal=random_clean_signal, name=f"clean_{i+1:04d}")
+        resample_and_write(signal=random_mixed_signal, name=f"mixed_{i+1:04d}")
+        resample_and_write(signal=generated_signal, name=f"denoised_{i+1:04d}")
+        resample_and_write(signal=filtered_signal, name=f"filtered_{i+1:04d}")
+        
+        # Plot all signals
+        for j, signal in enumerate([random_clean_signal, random_mixed_signal, 
+                                  generated_signal, filtered_signal]):
+            axes[i, j].plot(time[:sample_window], signal[:sample_window])
+            axes[i, j].set_title(col_titles[j])
+            if j == 0:
+                axes[i, j].set_ylabel(f"Example {i + 1}")
+            axes[i, j].grid(alpha=0.3)
+            if i == num_examples - 1:
+                axes[i, j].set_xlabel("Time (s)")
+    
     # Add global title and adjust layout
     fig.suptitle(title, fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     
-    # Don't show the plot immediately - let the caller handle display/save
-    plt.ion()  # Turn on interactive mode
-    plt.pause(0.001)  # Small pause to render
+    plt.ion()
+    plt.pause(0.001)
+
+def plot_generator_against_lowpass(generator, val_loader, num_examples=2, sample_window=120):
+    """
+    Plot the frequency spectrum for mixed signals, clean signals, denoised signals, and lowpass filtered signals.
+    
+    Args:
+        generator: The generator model for denoising
+        val_loader: DataLoader containing validation data
+        title (str): Title for the plot
+        num_examples (int): Number of examples to plot
+        sample_window (int): Number of samples to display in each plot
+    """
+    amp_titles = ['Clean Signal', 'Mixed Signal', 'Denoised Signal', 'Lowpass Filtered']
+    freq_titles = ['Clean Spectrum', 'Mixed Spectrum', 'Denoised Spectrum', 'Lowpass Spectrum']
+
+    for ex_idx in range(num_examples):
+        # Fetch a batch of data
+        batch = next(iter(val_loader))
+        mixed_data, clean_data, _, _ = batch
+        
+        # Choose a random index from the batch
+        random_idx = np.random.randint(0, mixed_data.shape[0])
+        mixed_signal = mixed_data[random_idx].squeeze().detach().cpu().numpy()
+        clean_signal = clean_data[random_idx].squeeze().detach().cpu().numpy()
+        
+        # Generate denoised signal
+        with torch.no_grad():
+            generated_signal = generator(
+                torch.tensor(mixed_signal[None, None, :], dtype=torch.float32)
+            ).cpu().numpy().squeeze()
+        
+        # Apply lowpass filter
+        filtered_signal = apply_lowpass_filter(mixed_signal)
+        
+        # Create time array for plotting
+        time = np.linspace(0, 1, len(mixed_signal), endpoint=False)
+        
+        # Save audio files
+        resample_and_write(signal=clean_signal, name=f"clean_{ex_idx+1:04d}")
+        resample_and_write(signal=mixed_signal, name=f"mixed_{ex_idx+1:04d}")
+        resample_and_write(signal=generated_signal, name=f"denoised_{ex_idx+1:04d}")
+        resample_and_write(signal=filtered_signal, name=f"filtered_{ex_idx+1:04d}")
+        
+        # Initialize the plot grid for this example - 2 rows, 4 columns (1 row for signals, 1 row for spectra)
+        fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+        
+        # Plot time-amplitude signals in the first row
+        for col, signal in enumerate([clean_signal, mixed_signal, generated_signal, filtered_signal]):
+            axes[0, col].plot(time[:sample_window], signal[:sample_window])
+            axes[0, col].set_title(amp_titles[col])
+            axes[0, col].grid(alpha=0.3)
+             # Set y-axis label for amplitude
+            axes[0, col].set_xlabel("Time (s)")
+            if col == 0 :
+                axes[0, col].set_ylabel("Amplitude")
+
+        # Plot frequency spectra in the second row
+        for col, signal in enumerate([clean_signal, mixed_signal, generated_signal, filtered_signal]):
+            axes[1, col].plot(np.linspace(0, 500, len(signal)//2), 
+                              np.abs(np.fft.fft(signal))[:len(signal)//2])
+            axes[1, col].set_title(freq_titles[col])
+            axes[1, col].grid(True, alpha=0.3)
+            # Set y-axis label for magnitude
+            axes[1, col].set_xlabel("Frequency (Hz)")
+            if col == 0 :
+                axes[1, col].set_ylabel("Magnitude")
+        
+        # Add global title and adjust layout
+        fig.suptitle(f"Denoiser Against Lowpass Filter\nExample {ex_idx + 1}", fontsize=16)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+        plt.show()
+  
+        fig.savefig(f"images/denoised_against_lowpass_{ex_idx + 1:02d}.png")
+
+        plt.close(fig)
 
 
 def normalize_signal(signal):
@@ -268,3 +356,50 @@ def normalize_signal(signal):
     normalized_signal = 4 * (signal - min_val) / (max_val - min_val) - 2
     
     return normalized_signal
+
+def resample_and_write(signal, name, duration=1., output_dir="data/resampled") :
+    # Resample to 44100 Hz for playback
+    target_sample_rate = 44100  # or 48000 Hz if you prefer
+    resampled_noise = resample(signal, int(target_sample_rate * duration))  # Resample to target rate
+    
+    # Convert to 16-bit PCM
+    resampled_noise_int16 = np.int16(resampled_noise / np.max(np.abs(resampled_noise)) * 32767)
+    
+    # Save to a .wav file
+    output_file = os.path.join(output_dir, f"resampled_{name}.wav")
+    write(output_file, target_sample_rate, resampled_noise_int16)
+
+    
+def apply_lowpass_filter(audio_signal, sr=1024, passband_freq=55, stopband_freq=90, 
+                        passband_ripple=0.05, stopband_attenuation=60):
+    """
+    Apply a Butterworth lowpass filter to an audio signal.
+    
+    Args:
+        audio_signal (numpy.ndarray): Input audio signal
+        sr (int): Sampling rate in Hz
+        passband_freq (float): Passband frequency in Hz
+        stopband_freq (float): Stopband frequency in Hz
+        passband_ripple (float): Maximum ripple allowed in the passband (dB)
+        stopband_attenuation (float): Minimum attenuation required in the stopband (dB)
+    
+    Returns:
+        numpy.ndarray: Filtered audio signal
+    """
+    nyquist = sr / 2
+    
+    # Normalize frequencies to Nyquist rate
+    wp = passband_freq / nyquist
+    ws = stopband_freq / nyquist
+    
+    # Calculate filter order and cutoff frequency
+    order, wn = signal.buttord(wp, ws, passband_ripple, stopband_attenuation)
+    
+    # Create Butterworth filter
+    b, a = signal.butter(order, wn, btype='low')
+    
+    # Apply zero-phase filtering
+    filtered_signal = signal.filtfilt(b, a, audio_signal)
+    
+    return filtered_signal
+    

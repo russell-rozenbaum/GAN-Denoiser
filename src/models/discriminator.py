@@ -28,8 +28,12 @@ class Discriminator(nn.Module):
         leakiness: float = 0.3,
         num_fc_layers: int = 2,  # Number of fully connected layers
         fc_units: int = 128,     # Number of units in the fully connected layers
+        delta=1,
     ):
         super().__init__()
+
+        # Adversarial and Reconstruction Loss Multipliers, respectively
+        self.delta=delta
 
         # ---------------------- |
         #  Convolutional Blocks  |

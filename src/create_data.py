@@ -4,9 +4,6 @@ Generate dataset of sine waves and gaussian white noise
 
 import numpy as np
 import os
-from scipy.io.wavfile import read, write
-from scipy.signal import resample
-import random
 import utils.utils as utils
 
 def generate_bounds(audio, length):
@@ -101,18 +98,6 @@ def generate_audio_combinations(bird_sounds, ambient_noise, sample_rate, clip_le
 
     return np.array(clips), np.array(bird_original), np.array(noise_original)
 
-def resample_and_write(signal, duration, i, output_dir="data/resampled") :
-    # Resample to 44100 Hz for playback
-    target_sample_rate = 44100  # or 48000 Hz if you prefer
-    resampled_noise = resample(signal, int(target_sample_rate * duration))  # Resample to target rate
-    
-    # Convert to 16-bit PCM
-    resampled_noise_int16 = np.int16(resampled_noise / np.max(np.abs(resampled_noise)) * 32767)
-    
-    # Save to a .wav file
-    output_file = os.path.join(output_dir, f"resampled_{i+1:04d}.wav")
-    write(output_file, target_sample_rate, resampled_noise_int16)
-
 def generate_gwn(output_dir, amplitude_std=1.0, duration_std=0, sample_rate=1024, num_files=1000) :
     """
     Gaussian White Noise Generator
@@ -140,7 +125,6 @@ def generate_gwn(output_dir, amplitude_std=1.0, duration_std=0, sample_rate=1024
         output_file = os.path.join(output_dir, f"noise_{i+1:04d}.npy")
         np.save(output_file, noise)
         #resample_and_write(noise, duration, i)
-        print(output_file)
 
     print(f"Generated {num_files} noise signals in '{output_dir}' directory.")
 
@@ -326,7 +310,9 @@ def generate(
             signal = np.load(file_path)
             dir_parts = directory.split('/')
             key = f"{dir_parts[-2]}/{dir_parts[-1]}"
+            name = f"{dir_parts[-2]}_{dir_parts[-1]}"
             signals_to_plot[key] = signal
+            utils.resample_and_write(signal=signal, name=name)
 
     # Plot with parameters
     if signals_to_plot:
@@ -344,9 +330,9 @@ def generate(
 def main():
     generate(
         min_freq=10,
-        max_freq=64,
-        num_sine_components=5,
-        snr=6,
+        max_freq=60,
+        num_sine_components=2,
+        snr=-2,
         total_signals=285,
         tr_split=.9, 
         val_split=.1

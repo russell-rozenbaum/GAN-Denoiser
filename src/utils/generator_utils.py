@@ -12,19 +12,19 @@ FAKE_LABEL=0
 
 def _adversarial_loss(disc_outputs):
     '''
-    Calculate MSE Loss
-
-    Description:
-        Simple adversarial loss calculation. How well was generator able to fool
-        discriminator into believing it is clean data?
+    Generator adversarial loss: minimize log(1 - D(G(z))) 
+    which is equivalent to maximizing log(D(G(z)))
+    
+    Args:
+        disc_outputs: Discriminator outputs on generated data, shape (N, 1)
+        gamma: Scaling factor for loss
     '''
-    # Avoid log(0) by adding a small epsilon for numerical stability
     epsilon = 1e-8
-    # log(1 - D(G(z)))
-    gen_losses = torch.log(1 - disc_outputs + epsilon)
-    mean_loss = torch.mean(gen_losses)  # Scalar tensor
-
-    return mean_loss, gen_losses
+    
+    # Maximize log(D(G(z))) - this tricks discriminator better than minimizing log(1 - D(G(z)))
+    gen_loss = -torch.mean(torch.log(disc_outputs + epsilon))
+    
+    return gen_loss
 
 def _reconstruction_loss(gen_outputs, clean_signals):
     '''
@@ -41,7 +41,7 @@ def _reconstruction_loss(gen_outputs, clean_signals):
     # Mean L1 loss across the batch
     mean_loss = torch.mean(gen_losses)  # Scalar tensor representing the mean L1 loss
     
-    return mean_loss * 3, gen_losses
+    return mean_loss
 
 def _generator_loss(gen_outputs, disc_outputs, clean_signals):
     '''
@@ -50,13 +50,12 @@ def _generator_loss(gen_outputs, disc_outputs, clean_signals):
     Desciption:
         Uses both adversarial loss from GAN and reconstruction loss in basic AE style
     '''
-    adv_loss, adv_gen_losses = _adversarial_loss(disc_outputs)
-    recon_loss, recon_gen_losses = _reconstruction_loss(gen_outputs, clean_signals)
+    adv_loss = _adversarial_loss(disc_outputs)
+    recon_loss = _reconstruction_loss(gen_outputs, clean_signals)
 
     total_gen_loss = adv_loss + recon_loss
-    total_gen_losses = adv_gen_losses + recon_gen_losses
 
-    return total_gen_loss, total_gen_losses
+    return total_gen_loss
 
 def _get_metrics(loader, generator, discriminator):
     correct, total = 0, 0
@@ -74,7 +73,7 @@ def _get_metrics(loader, generator, discriminator):
             total += mixed_data.size(0)
 
             # Accumulate loss metrics
-            gen_loss, _ = _generator_loss(generator_out, discriminator_out, clean_data)
+            gen_loss = _generator_loss(generator_out, discriminator_out, clean_data)
             running_loss.append(gen_loss)
 
     loss = np.mean(running_loss)
@@ -138,7 +137,9 @@ def train_epoch(generator, discriminator, tr_loader, optimizer):
         disc_outputs = discriminator(gen_outputs)
 
         # Calculate generator loss using the helper function
-        loss, _ = _generator_loss(gen_outputs, disc_outputs, clean_data)
+        loss = _generator_loss(gen_outputs, disc_outputs, clean_data)
+
+        loss *= generator.rho
 
         # Backward pass and optimizer step
         loss.backward()
