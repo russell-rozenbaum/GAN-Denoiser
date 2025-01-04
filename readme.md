@@ -35,7 +35,7 @@ This is where created noise, sine, and mixed (noise + sine) signals will be stor
 Run create_data.py
 This should result in folders being filled with data, and displaying plots for a random signal from each folder.
 Signals should be displayed as follows (different of course, since they are randomly generated)
-![Created Data](images/archive/created_data.png)
+<img src="images/architecture/generator.png" alt="Generator" width="500"/>
 
 Then run dataset.py to verify that everything is working properly (this won't actually do anything to memory)
 
@@ -51,30 +51,32 @@ Consists of 2 models:
 
 ### Generator
 
-The Generator is an autoencoder based strongly off of [this article](https://www.mathworks.com/help/signal/ug/denoise-signals-with-generative-adversarial-networks.html) by Mathworks. It is tasked with taking as input a noisy signal and outputting a denoised version of that signal.
+The Generator is an autoencoder based strongly off of [this article by Mathworks](https://www.mathworks.com/help/signal/ug/denoise-signals-with-generative-adversarial-networks.html). It is tasked with taking as input a noisy signal and outputting a denoised version of that signal.
 
-![Generator](images/architecture/generator.png)
+<img src="images/architecture/generator.png" alt="Generator" width="300"/>
 
 ### Discriminator
 
 The Discriminator is tasked with distinguishing clean signals apart from faux clean signals (denoised signals produced by the generator). 
 
-![Discriminator](images/architecture/discriminator.png)
+<img src="images/architecture/discriminator.png" alt="Discriminator" width="300"/>
 
 ### Training
 
 The Discriminator is trained in classic GAN fashion, using the BCE loss between clean signals and denoised signals.
 
-The Generator, however, is trained on a hybrid loss function. It uses adversarial loss, just as so in a standard GAN, but also reconstruction loss. The adversarial loss is just BCE loss upon how well it "fools" the discriminator. The reconstruction loss is the L1 Norm between the clean signal and the generated denoised signal. 
+The Generator, however, is trained on a hybrid loss function. It uses adversarial loss, just as so in a standard GAN, but also reconstruction loss. The adversarial loss is just BCE loss upon how well it "fools" the discriminator. The reconstruction loss is the L1 Norm between the clean signal and the generated denoised signal. [Here is another Mathworks article](https://www.mathworks.com/help/signal/ug/signal-denoising-using-adversarial-learning-denoiser-model.html#DenoiseSignalsWithAdversarialDenoiserModelExample-1) which strongly incorporates this logic.
 
-![Training Process](images/architecture/training.png)
+
+
+<img src="images/architecture/training.png" alt="Training Process" width="600"/>
 
 ### Example
 
 Training on the same dataset from the created data example above, we see the following performance and generator results:
-![Models Training](images/archive/performance_plot.png)
-![Denoiser Output Example 1](images/archive/denoised_against_lowpass_01.png)
-![Denoiser Output Example 2](images/archive/denoised_against_lowpass_02.png)
+<img src="images/archive/performance_plot.png" alt="Models Training" width="600"/>
+<img src="images/archive/denoised_against_lowpass_01.png" alt="Denoiser Output Example 1" width="600"/>
+<img src="images/archive/denoised_against_lowpass_02.png" alt="Denoiser Output Example 2" width="600"/>
 
 As we see, the lowpass filter clearly excels at removing high-frequency-noise -- it's in it's name. However, he generator denoiser is capable of removing both high-frequency-noise and low-frequency-noise, that which falls in the range of the sine waves. When training a generator with more filters, a deeper autoencoder, and a stronger discriminator, we expect these effects to only heighten.
 

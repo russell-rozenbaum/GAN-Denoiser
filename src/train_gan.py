@@ -32,7 +32,8 @@ def train_gan(
     max_epochs=100,
     patience=20,
     batch_size=16,
-    lr=1e-4,
+    gen_lr=1e-4,
+    dec_lr=1e-4,
     gamma=1,
     rho=3,
     delta=1,
@@ -62,8 +63,8 @@ def train_gan(
     )
 
     # Hyperparams
-    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=lr)
-    disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr)
+    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=gen_lr)
+    disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=dec_lr)
     # TODO: Activate schedulers for decreasing learning rate
     gen_scheduler = StepLR(gen_optimizer, step_size=50, gamma=.5)
     disc_scheduler = StepLR(disc_optimizer, step_size=25, gamma=.5)
@@ -180,21 +181,22 @@ def main() :
 
     train_gan(
         # Generator params
-        num_enc_filters=12,
-        num_dec_filters=24,
-        num_upsamples_and_downsamples=3,
+        num_enc_filters=6,
+        num_dec_filters=16,
+        num_upsamples_and_downsamples=2,
         # Discriminator params
         num_filters=2,
         num_convolutions=2,
-        num_fc_units=12,
+        num_fc_units=8,
         # Training hyperparams
-        max_epochs=200,
+        max_epochs=300,
         patience=50,
-        batch_size=25,
-        lr=5e-4,
-        gamma=1,
-        rho=3,
-        delta=1,
+        batch_size=50,
+        gen_lr=5e-4,
+        dec_lr=1e-4,
+        gamma=3,
+        rho=9,
+        delta=2,
         signal_length=256,
     )
 

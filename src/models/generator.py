@@ -29,7 +29,7 @@ class DenoisingAE(nn.Module):
         stride: int = 2,
         num_downsamples: int = 5,
         num_upsamples: int = 5,
-        leakiness: float = 0.05,
+        leakiness: float = 0.1,
         gamma=1,
         rho=1,
     ):

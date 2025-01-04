@@ -333,7 +333,7 @@ def main():
         max_freq=64,
         num_sine_components=2,
         snr=-2,
-        total_signals=900,
+        total_signals=1800,
         tr_split=(8/9), 
         val_split=(1/9),
     )

@@ -25,7 +25,7 @@ class Discriminator(nn.Module):
         num_filters: int = 64,
         filter_size: int = 32,
         stride: int = 2,
-        leakiness: float = 0.05,
+        leakiness: float = 0.01,
         num_fc_layers: int = 2,  # Number of fully connected layers
         fc_units: int = 128,     # Number of units in the fully connected layers
         delta=1,

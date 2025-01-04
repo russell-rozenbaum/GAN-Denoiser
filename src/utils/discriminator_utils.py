@@ -141,6 +141,8 @@ def train_epoch(discriminator, generator, tr_loader, optimizer):
         # Calculate loss between model prediction and true labels (1 for clean)
         disc_loss = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out)
 
+        disc_loss *= discriminator.delta
+
         # Perform backward pass and optimizer step
         disc_loss.backward()
         optimizer.step()
