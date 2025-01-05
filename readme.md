@@ -25,13 +25,13 @@ A total of 1800 samples are generated, and split into train and validation sets 
 
 The Generator is an autoencoder based strongly off of [this article by Mathworks](https://www.mathworks.com/help/signal/ug/denoise-signals-with-generative-adversarial-networks.html). It is tasked with taking as input a noisy signal and outputting a denoised version of that signal.
 
-<img src="images/architecture/generator_architecture.jpg" alt="Generator Architecture" width="200"/>
+<img src="images/architecture/generator_architecture.jpg" alt="Generator Architecture" width="320"/>
 
 ### Discriminator
 
 The Discriminator is tasked with distinguishing clean signals apart from faux clean signals (denoised signals produced by the generator). 
 
-<img src="images/architecture/discriminator_architecture.jpg" alt="Discriminator Architecture" width="200"/>
+<img src="images/architecture/discriminator_architecture.jpg" alt="Discriminator Architecture" width="320"/>
 
 ### Training
 
