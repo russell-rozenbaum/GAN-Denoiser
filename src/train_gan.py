@@ -67,7 +67,7 @@ def train_gan(
     disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=dec_lr)
     # TODO: Activate schedulers for decreasing learning rate
     gen_scheduler = StepLR(gen_optimizer, step_size=50, gamma=.5)
-    disc_scheduler = StepLR(disc_optimizer, step_size=25, gamma=.5)
+    disc_scheduler = StepLR(disc_optimizer, step_size=50, gamma=.5)
 
     print("Number of float-valued parameters in DenoisingAE:", model_utils.count_parameters(generator))
     print("Number of float-valued parameters in Discriminator:", model_utils.count_parameters(discriminator))
@@ -181,18 +181,18 @@ def main() :
 
     train_gan(
         # Generator params
-        num_enc_filters=6,
+        num_enc_filters=8,
         num_dec_filters=16,
         num_upsamples_and_downsamples=2,
         # Discriminator params
-        num_filters=2,
+        num_filters=3,
         num_convolutions=2,
         num_fc_units=8,
         # Training hyperparams
         max_epochs=300,
         patience=50,
         batch_size=50,
-        gen_lr=5e-4,
+        gen_lr=1e-3,
         dec_lr=1e-4,
         gamma=3,
         rho=9,
