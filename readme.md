@@ -19,7 +19,7 @@ The clean and noise signals are then mixed into "mixed" signals, with signal-to-
 
 A total of 1800 samples are generated, and split into train and validation sets with a ratio of 1600:200 respectively. The following image shows each type of signal from each split:
 
-<img src="images/archive/created_data.png" alt="Created Data" width="500"/>
+<img src="images/archive/created_data.png" alt="Created Data" width="750"/>
 
 ### Generator
 
@@ -43,9 +43,9 @@ The Generator, however, is trained on a hybrid loss function. It uses adversaria
 
 Training on the same dataset from the created data example above, we see the following performance and generator results:
 
-<img src="images/archive/performance_plot.png" alt="Models Training" width="600"/>
-<img src="images/archive/denoised_against_lowpass_01.png" alt="Denoiser Output Example 1" width="600"/>
-<img src="images/archive/denoised_against_lowpass_02.png" alt="Denoiser Output Example 2" width="600"/>
+<img src="images/archive/performance_plot.png" alt="Models Training" width="750"/>
+<img src="images/archive/denoised_against_lowpass_01.png" alt="Denoiser Output Example 1" width="750"/>
+<img src="images/archive/denoised_against_lowpass_02.png" alt="Denoiser Output Example 2" width="750"/>
 
 ## Setup
 
