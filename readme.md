@@ -5,7 +5,7 @@ audio signals.
 
 ## Overview
 
-An extremely lightweight hybrid denoising AE/GAN. The generator acts as the denoiser. It is currently set up to only 26373 generator parameters and 1245 discriminator parameters. This makes it feasible to train on a standard laptop (no need for external GPUs needed!). However, due to how weak it is, it is currently setup to only be capable of removing noise from signals sampled at 256 samples/second. In particular, the signals are only 1 second in length, thus 256 samples long, and are composed of 3 sine waves generated uniformly at random with a range of [10Hz - 64Hz]. The gaussian white noise is thus in the range (0Hz - 128Hz]. 
+An extremely lightweight hybrid denoising AE/GAN. The generator acts as the denoiser. It is currently set up to only 282,177 generator parameters and 10,577 discriminator parameters. This makes it feasible to train on a standard laptop (no need for external GPUs needed!). However, due to how weak it is, it is currently setup to only be capable of removing noise from signals sampled at 256 samples/second. In particular, the signals are only 1 second in length, thus 256 samples long, and are composed of 3 sine waves generated uniformly at random with a range of [10Hz - 64Hz]. The gaussian white noise is thus in the range (0Hz - 128Hz]. 
 
 Trained denoiser outputs are compared against a lowpass filter. As we'll see, the lowpass filter excels in removing high frequencies, but fails to eliminate noise within the generated-sine-range. The lightweight denoiser fails to remove high frequencies completely, but can significantly reduce frequencies within the generated-sine-range.
 
@@ -52,6 +52,8 @@ Training on the same dataset from the created data example above, we trained the
 <img src="images/archive/denoised_against_lowpass_06.png" alt="Denoiser Output Example 6" width="750"/>
 <img src="images/archive/denoised_against_lowpass_07.png" alt="Denoiser Output Example 7" width="750"/>
 <img src="images/archive/denoised_against_lowpass_08.png" alt="Denoiser Output Example 8" width="750"/>
+
+From this, we can see the variation in the generator's performance on denoising data from the validation set. For example, in examples 4, 5, and 8 the signal is denoised/reconstructed almost seamlessly, with minimal amounts of noise leftover and little to no changes in the each component's respective, original magnitude. In examples 1, 3, 6, and 7 we can see alterings in the strength of some components' magnitudes, and leaving some strange random-frequency artifacts leftover. In example 2, we see the denoiser completely deteriorate and collapse the signal into just a single sine wave.
 
 ## Setup
 
