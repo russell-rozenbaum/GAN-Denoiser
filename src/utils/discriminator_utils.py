@@ -8,7 +8,7 @@ from sklearn import metrics
 from . import utils
 from . import model_common_utils
 
-def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs):
+def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs, delta):
     '''
     Standard GAN discriminator loss: maximize log(D(x)) + log(1 - D(G(z)))
     
@@ -29,7 +29,7 @@ def _discriminator_loss(disc_denoised_outputs, disc_clean_outputs):
     # Total loss (negative since we want to maximize)
     total_loss = (clean_loss + denoised_loss)
     
-    return total_loss
+    return total_loss * delta
 
 def _get_metrics(loader, generator, discriminator):
         
@@ -66,7 +66,7 @@ def _get_metrics(loader, generator, discriminator):
                 scores.append(disc_clean_out.data.view(-1))
 
                 # Accumulate losses for average loss calculation
-                disc_loss = _discriminator_loss(disc_denoised_out, disc_clean_out)
+                disc_loss = _discriminator_loss(disc_denoised_out, disc_clean_out, discriminator.delta)
                 running_loss.append(disc_loss)
 
         true = torch.cat(true_labels)
@@ -139,9 +139,7 @@ def train_epoch(discriminator, generator, tr_loader, optimizer):
         discriminator_clean_out = discriminator.forward(clean_data)
 
         # Calculate loss between model prediction and true labels (1 for clean)
-        disc_loss = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out)
-
-        disc_loss *= discriminator.delta
+        disc_loss = _discriminator_loss(discriminator_denoised_out, discriminator_clean_out, discriminator.delta)
 
         # Perform backward pass and optimizer step
         disc_loss.backward()
