@@ -4,7 +4,7 @@ A novel implementation of a denoising autoencoder trained within a generative ad
 
 ## Overview
 
-This repository presents an ultra-lightweight hybrid denoising architecture combining autoencoder and GAN methodologies. The implementation features a generator serving as the primary denoising component, with remarkably efficient parameter utilization: 282,177 parameters for the generator and 10,577 parameters for the discriminator. This efficient design enables training on standard consumer hardware without requiring specialized GPU capabilities.
+This repository presents an ultra-lightweight hybrid denoising architecture combining autoencoder and GAN methodologies. The implementation features a generator serving as a primary denoising component, with highly efficient parameter utilization: 282,177 parameters for the generator and 10,577 parameters for the discriminator. This efficient design enables training on standard consumer hardware without requiring specialized GPU capabilities.
 
 Due to computational constraints, the current implementation is optimized for signals sampled at 256 samples/second, processing 1-second duration signals composed of three randomly generated sine waves within the 10Hz - 64Hz frequency range. The model addresses Gaussian white noise contamination within the 0Hz - 128Hz range.
 
