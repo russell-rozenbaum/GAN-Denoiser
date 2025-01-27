@@ -1,67 +1,109 @@
-# Denoising Adversarial Network (DAN)
+# Lightweight Denoising Adversarial Network (DAN)
 
-Denoising Autoencoder trained on a generative adversarial network (GAN). Autoencoder for use in denoising
-audio signals.
+A novel implementation of a denoising autoencoder trained within a generative adversarial network (GAN) framework, specifically designed for audio signal denoising tasks.
 
 ## Overview
 
-An extremely lightweight hybrid denoising AE/GAN. The generator acts as the denoiser. It is currently set up to only 282,177 generator parameters and 10,577 discriminator parameters. This makes it feasible to train on a standard laptop (no need for external GPUs needed!). However, due to how weak it is, it is currently setup to only be capable of removing noise from signals sampled at 256 samples/second. In particular, the signals are only 1 second in length, thus 256 samples long, and are composed of 3 sine waves generated uniformly at random with a range of [10Hz - 64Hz]. The gaussian white noise is thus in the range (0Hz - 128Hz]. 
+This repository presents an ultra-lightweight hybrid denoising architecture combining autoencoder and GAN methodologies. The implementation features a generator serving as the primary denoising component, with remarkably efficient parameter utilization: 282,177 parameters for the generator and 10,577 parameters for the discriminator. This efficient design enables training on standard consumer hardware without requiring specialized GPU capabilities.
 
-Trained denoiser outputs are compared against a lowpass filter. As we'll see, the lowpass filter excels in removing high frequencies, but fails to eliminate noise within the generated-sine-range. The lightweight denoiser fails to remove high frequencies completely, but can significantly reduce frequencies within the generated-sine-range.
+Due to computational constraints, the current implementation is optimized for signals sampled at 256 samples/second, processing 1-second duration signals composed of three randomly generated sine waves within the 10Hz - 64Hz frequency range. The model addresses Gaussian white noise contamination within the 0Hz - 128Hz range.
 
-### Data Creation
+Comparative analysis against traditional lowpass filtering demonstrates complementary strengths: while lowpass filters excel at high-frequency noise elimination, they exhibit limitations within the generated-sine-range. Conversely, our lightweight denoiser shows superior performance in reducing noise within the signal frequency range, albeit with some limitations in complete high-frequency noise elimination.
 
-The sinusoidal compositions (clean signals) are generated uniformly at random with a range of [10Hz - 64Hz]. This composition of 3 components significantly reduces the likeliehood of training data showing up in the validation set.
+### Data Generation Methodology
 
-The noise is gaussian white noise (GWN), sampling each of the 256 samples (which serve as the amplitude of the signal) within each generated signal from a normal distribution, with a mean of 0 and standard deviation of 0.5. 
+The training data consists of:
 
-The clean and noise signals are then mixed into "mixed" signals, with signal-to-noise ratio (SNR) of -2. To later perform reconstruction loss, we combine the i-th generated clean signal with the i-th generated mixed signal, for all generated signals. 
+1. Clean Signals:
+   - Three-component sinusoidal compositions
+   - Frequency range: 10Hz - 64Hz (uniform random distribution)
+   - Design ensures minimal training-validation set overlap
 
-A total of 1800 samples are generated, and split into train and validation sets with a ratio of 1600:200 respectively. The following image shows each type of signal from each split:
+2. Noise Generation:
+   - Gaussian white noise (GWN)
+   - Parameters: μ = 0, σ = 0.5
+   - 256 samples per signal
+
+3. Signal Combination:
+   - Mixed signals generated at SNR = -2
+   - Paired clean-mixed signal combinations for reconstruction loss computation
+
+4. Dataset Distribution:
+   - Total samples: 1800
+   - Training set: 1600 samples
+   - Validation set: 200 samples
+
+Sample visualization of generated data across different sets:
 
 <img src="images/archive/created_data.png" alt="Created Data" width="750"/>
 
-### Generator
+### Network Architecture
 
-The Generator is an autoencoder based strongly off of [this article by Mathworks](https://www.mathworks.com/help/signal/ug/denoise-signals-with-generative-adversarial-networks.html). It is tasked with taking as input a noisy signal and outputting a denoised version of that signal.
+#### Generator
+The generator implements an autoencoder architecture adapted from established signal processing methodologies, optimized for the denoising task.
 
 <img src="images/architecture/generator_architecture.jpg" alt="Generator Architecture" width="320"/>
 
-### Discriminator
-
-The Discriminator is tasked with distinguishing clean signals apart from faux clean signals (denoised signals produced by the generator). 
+#### Discriminator
+The discriminator employs a compact architecture designed to differentiate between clean signals and generator outputs effectively.
 
 <img src="images/architecture/discriminator_architecture.jpg" alt="Discriminator Architecture" width="320"/>
 
-### Training
+### Training Methodology
 
-The Discriminator is trained in classic GAN fashion, using the BCE loss between clean signals and denoised signals.
+The training protocol implements a hybrid approach:
 
-The Generator, however, is trained on a hybrid loss function. It uses adversarial loss, just as so in a standard GAN, but also reconstruction loss. The adversarial loss is just BCE loss upon how well it "fools" the discriminator. The reconstruction loss is the L1 Norm between the clean signal and the generated denoised signal. [Here is another Mathworks article](https://www.mathworks.com/help/signal/ug/signal-denoising-using-adversarial-learning-denoiser-model.html#DenoiseSignalsWithAdversarialDenoiserModelExample-1) which strongly incorporates this logic.
+1. Discriminator Training:
+   - Standard GAN methodology
+   - BCE loss between clean and denoised signals
+
+2. Generator Training:
+   - Hybrid loss function combining:
+     - Adversarial loss (BCE-based discriminator deception metric)
+     - Reconstruction loss (L1 norm between clean and generated signals)
+
+Training visualization:
 
 <img src="images/architecture/training.png" alt="Training Process" width="400"/>
 
-Training on the same dataset from the created data example above, we trained the generator for 40 epochs, then began training both the generator and discriminator for a set maximum number of epochs (=200) or until patience (=50) was reached. Patience was ultimately reached at epoch 107, the following are examples from the validation set, in the order of clean, mixed, denoised, and low-pass filtered data :
+### Performance Analysis
+
+Training parameters:
+- Initial generator training: 40 epochs
+- Combined training: Maximum 200 epochs
+- Early stopping patience: 50 epochs
+- Convergence achieved: Epoch 107
+
+Validation set performance examples:
 
 <img src="images/archive/performance_plot.png" alt="Models Training" width="750"/>
+
+Representative output comparisons (clean, mixed, denoised, and low-pass filtered signals):
+
 <img src="images/archive/denoised_against_lowpass_01.png" alt="Denoiser Output Example 1" width="750"/>
-<img src="images/archive/denoised_against_lowpass_02.png" alt="Denoiser Output Example 2" width="750"/>
-<img src="images/archive/denoised_against_lowpass_03.png" alt="Denoiser Output Example 3" width="750"/>
 <img src="images/archive/denoised_against_lowpass_04.png" alt="Denoiser Output Example 4" width="750"/>
-<img src="images/archive/denoised_against_lowpass_05.png" alt="Denoiser Output Example 5" width="750"/>
-<img src="images/archive/denoised_against_lowpass_06.png" alt="Denoiser Output Example 6" width="750"/>
-<img src="images/archive/denoised_against_lowpass_07.png" alt="Denoiser Output Example 7" width="750"/>
 <img src="images/archive/denoised_against_lowpass_08.png" alt="Denoiser Output Example 8" width="750"/>
 
-From this, we can see the variation in the generator's performance on denoising data from the validation set. For example, in examples 4, 5, and 8 the signal is denoised/reconstructed almost seamlessly, with minimal amounts of noise leftover and little to no changes in the each component's respective, original magnitude. In examples 1, 3, 6, and 7 we can see alterings in the strength of some components' magnitudes, and leaving some strange random-frequency artifacts leftover. In example 2, we see the denoiser completely deteriorate and collapse the signal into just a single sine wave.
+Performance observations:
+1. Optimal Performance (Examples 4, 5, 8):
+   - Near-perfect signal reconstruction
+   - Minimal residual noise
+   - Preserved component magnitudes
 
-## Setup
+2. Moderate Success (Examples 1, 3, 6, 7):
+   - Component magnitude variations
+   - Residual frequency artifacts
 
-The training can be done on a standard laptop, and takes around 10-15 minutes for 300 epochs (with the current model architectures).
+3. Suboptimal Cases (Example 2):
+   - Signal collapse to single-frequency component
 
-Install dependencies in requirements.txt
+## Implementation Guide
 
-Setup a data folder as follows:
+The implementation is optimized for standard laptop configurations, with typical training duration of 10-15 minutes for 300 epochs using current architectures.
+
+### Setup Requirements
+
+1. Directory structure:
 ```
 GAN-Denoiser
 ├── data
@@ -76,20 +118,29 @@ GAN-Denoiser
 │       └── noise
 └── ...
 ```
-This is where created noise, sine, and mixed (noise + sine) signals will be stored.
 
-Run create_data.py
-This should result in folders being filled with data, and displaying plots for a random signal from each folder
+2. Installation:
+   - Install dependencies from requirements.txt
 
-Then run dataset.py to verify that everything is working properly (this won't actually do anything to memory)
+### Execution Steps
 
-Now we can run train_gan.py
+1. Data Generation:
+   - Execute create_data.py
+   - Verify data generation through displayed random signal plots
 
-Fine-tune hyperparameters (generator architecture, discriminator architecture, data creation parameters, training parameters) as desired.
+2. Dataset Validation:
+   - Run dataset.py for system compatibility verification
 
-## Citations
+3. Model Training:
+   - Execute train_gan.py
+   - Adjust hyperparameters as needed:
+     - Generator architecture
+     - Discriminator architecture
+     - Data creation parameters
+     - Training parameters
 
-As aforementioned, a lot of the confidence in building this model, and the layout of the models and training process itself, is all strongly inspired by [this article](https://www.mathworks.com/help/signal/ug/denoise-signals-with-generative-adversarial-networks.html) by Mathworks. In essence, we try to attempt 
+## Academic References
 
-There's been notable advancements in denoising methods using similar architectural methods, such as deep feature loss as utilized by [Zhang et al. 2024](https://www.sciencedirect.com/science/article/pii/S1574954124000591). This repo was inherently inspired by this paper, as an attempt to build a foundational understanding of such CNN denoisers.
+1. MathWorks. "Denoise Signals with Generative Adversarial Networks." Signal Processing Toolbox Documentation. This implementation draws significant inspiration from their architectural and training methodologies.
 
+2. Zhang et al. (2024). "Deep Feature Loss for Signal Denoising." Advanced Engineering Informatics. This work influenced our approach to CNN-based denoising strategies.

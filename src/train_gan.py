@@ -155,12 +155,13 @@ def train_gan(
         )
 
         # Train discriminator
-        disc_utils.train_epoch(
-            discriminator=discriminator,
-            generator=generator,
-            tr_loader=tr_loader,
-            optimizer=disc_optimizer,
-        )
+        if epoch >= 40 :
+            disc_utils.train_epoch(
+                discriminator=discriminator,
+                generator=generator,
+                tr_loader=tr_loader,
+                optimizer=disc_optimizer,
+            )
 
         # Increment epoch, as we've performed another iterations of training
         epoch += 1
