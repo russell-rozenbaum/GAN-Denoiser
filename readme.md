@@ -81,7 +81,12 @@ Validation set performance examples:
 Representative output comparisons (clean, mixed, denoised, and low-pass filtered signals):
 
 <img src="images/archive/denoised_against_lowpass_01.png" alt="Denoiser Output Example 1" width="750"/>
+<img src="images/archive/denoised_against_lowpass_02.png" alt="Denoiser Output Example 2" width="750"/>
+<img src="images/archive/denoised_against_lowpass_03.png" alt="Denoiser Output Example 3" width="750"/>
 <img src="images/archive/denoised_against_lowpass_04.png" alt="Denoiser Output Example 4" width="750"/>
+<img src="images/archive/denoised_against_lowpass_05.png" alt="Denoiser Output Example 5" width="750"/>
+<img src="images/archive/denoised_against_lowpass_06.png" alt="Denoiser Output Example 6" width="750"/>
+<img src="images/archive/denoised_against_lowpass_07.png" alt="Denoiser Output Example 7" width="750"/>
 <img src="images/archive/denoised_against_lowpass_08.png" alt="Denoiser Output Example 8" width="750"/>
 
 Performance observations:
