@@ -403,3 +403,86 @@ def apply_lowpass_filter(audio_signal, sr=256, passband_freq=64, stopband_freq=9
     
     return filtered_signal
     
+    
+def calculate_snr(signal, noise):
+    """
+    Calculate the Signal-to-Noise Ratio (SNR) between a signal and noise.
+    
+    Args:
+        signal (numpy.ndarray): The clean/reference signal
+        noise (numpy.ndarray): The noise signal or the difference between clean and noisy signals
+        
+    Returns:
+        float: The SNR value in decibels (dB)
+    """
+    # Ensure the inputs are numpy arrays
+    signal = np.asarray(signal)
+    noise = np.asarray(noise)
+    
+    # Calculate signal and noise power
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    
+    # Avoid division by zero
+    if noise_power == 0:
+        return float('inf')
+    
+    # Calculate SNR in dB
+    snr = 10 * np.log10(signal_power / noise_power)
+    
+    return snr  
+
+
+def calculate_snr_reduction(clean_signal, noisy_signal, denoised_signal):
+    """
+    Calculate the reduction in noise (improvement in SNR) achieved by the denoising model.
+    
+    Args:
+        clean_signal (numpy.ndarray): The original clean signal
+        noisy_signal (numpy.ndarray): The signal with added noise
+        denoised_signal (numpy.ndarray): The output signal from the denoising model
+        
+    Returns:
+        float: The SNR improvement in decibels (dB)
+    """
+    # Calculate SNR between clean and noisy signals
+    initial_snr = calculate_snr(clean_signal, noisy_signal - clean_signal)
+    
+    # Calculate SNR between clean and denoised signals 
+    final_snr = calculate_snr(clean_signal, denoised_signal - clean_signal)
+    
+    # Calculate the improvement/reduction
+    snr_reduction = final_snr - initial_snr
+    
+    return snr_reduction
+
+def calculate_signal_distortion(clean_signal, denoised_signal):
+    """
+    Calculate the signal distortion/loss between the original clean signal
+    and the denoised output signal.
+    
+    Args:
+        clean_signal (numpy.ndarray): The original clean signal
+        denoised_signal (numpy.ndarray): The output signal from the denoising model
+        
+    Returns:
+        float: The signal distortion in decibels (dB). Lower values indicate less distortion.
+    """
+    # Ensure inputs are numpy arrays
+    clean_signal = np.asarray(clean_signal)
+    denoised_signal = np.asarray(denoised_signal)
+    
+    # Calculate mean squared error
+    mse = np.mean((clean_signal - denoised_signal) ** 2)
+    
+    # Calculate signal power
+    signal_power = np.mean(clean_signal ** 2)
+    
+    # Avoid division by zero
+    if signal_power == 0:
+        return float('inf')
+    
+    # Calculate distortion in dB
+    distortion = -10 * np.log10(mse / signal_power)
+    
+    return distortion

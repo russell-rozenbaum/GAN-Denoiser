@@ -4,6 +4,51 @@ from dataset import get_train_val_test_loaders
 from models.generator import DenoisingAE
 import utils.utils as utils
 import utils.generator_utils as gen_utils
+import numpy as np
+
+def calculate_performance_metrics(clean_signals, noisy_signals, denoised_signals):
+    """
+    Calculate various performance metrics for the denoising model.
+    
+    Args:
+        clean_signals (numpy.ndarray): Original clean signals
+        noisy_signals (numpy.ndarray): Signals with added noise
+        denoised_signals (numpy.ndarray): Output signals from the denoising model
+        
+    Returns:
+        dict: Dictionary containing the calculated metrics:
+            - snr_reduction: Average reduction in noise (improvement in SNR)
+            - signal_distortion: Average signal distortion/loss
+    """
+    metrics = {}
+    
+    # Calculate metrics for each signal in the batch
+    snr_reductions = []
+    distortions = []
+    
+    for clean, noisy, denoised in zip(clean_signals, noisy_signals, denoised_signals):
+        # Convert to numpy if tensors
+        if torch.is_tensor(clean):
+            clean = clean.cpu().numpy()
+        if torch.is_tensor(noisy):
+            noisy = noisy.cpu().numpy()
+        if torch.is_tensor(denoised):
+            denoised = denoised.cpu().numpy()
+            
+        # Calculate SNR reduction
+        snr_red = utils.calculate_snr_reduction(clean, noisy, denoised)
+        snr_reductions.append(snr_red)
+        
+        # Calculate signal distortion
+        distortion = utils.calculate_signal_distortion(clean, denoised)
+        distortions.append(distortion)
+    
+    # Average the metrics
+    metrics['snr_reduction'] = np.mean(snr_reductions)
+    metrics['signal_distortion'] = np.mean(distortions)
+    
+    return metrics
+
 
 def load_generator_from_checkpoint(checkpoint_path, signal_length=256):
     """Load generator from checkpoint"""
@@ -35,37 +80,43 @@ def evaluate_generator(generator, val_loader, num_examples=5):
     )
     
     # Calculate and print validation metrics
-    total_val_loss = 0
     total_val_recon_loss = 0
+    total_snr_reduction = 0
+    total_signal_distortion = 0
     num_batches = 0
     
     with torch.no_grad():
-        for batch in val_loader:
-            clean_signals = batch['clean_signal']
-            noisy_signals = batch['noisy_signal']
+        for mixed_signals, clean_signals, _, _ in val_loader:
+            reconstructed = generator(mixed_signals)
             
-            reconstructed = generator(noisy_signals)
-            
-            val_loss = gen_utils.compute_loss(
-                generator=generator,
-                reconstructed=reconstructed,
-                clean_signals=clean_signals,
-                discriminator=None  # We don't need discriminator for evaluation
-            )
-            
+            # Only calculate reconstruction loss (MSE)
             recon_loss = torch.nn.functional.mse_loss(reconstructed, clean_signals)
             
-            total_val_loss += val_loss.item()
+            # Calculate performance metrics
+            metrics = calculate_performance_metrics(
+                clean_signals, 
+                mixed_signals,  
+                reconstructed
+            )
+            
             total_val_recon_loss += recon_loss.item()
+            total_snr_reduction += metrics['snr_reduction']
+            total_signal_distortion += metrics['signal_distortion']
             num_batches += 1
     
-    avg_val_loss = total_val_loss / num_batches
     avg_recon_loss = total_val_recon_loss / num_batches
+    avg_snr_reduction = total_snr_reduction / num_batches
+    avg_signal_distortion = total_signal_distortion / num_batches
     
-    print(f"Validation Loss: {avg_val_loss:.4f}")
     print(f"Reconstruction Loss: {avg_recon_loss:.4f}")
+    print(f"Average SNR Reduction: {avg_snr_reduction:.4f} dB")
+    print(f"Average Signal Distortion: {avg_signal_distortion:.4f}")
     
-    return avg_val_loss, avg_recon_loss
+    return {
+        'recon_loss': avg_recon_loss,
+        'snr_reduction': avg_snr_reduction,
+        'signal_distortion': avg_signal_distortion
+    }
 
 def get_available_checkpoints():
     """Get list of available checkpoint epochs"""
@@ -137,7 +188,7 @@ def main():
         
         # Evaluate generator
         print("\nEvaluating generator...")
-        val_loss, recon_loss = evaluate_generator(
+        val_metrics = evaluate_generator(
             generator=generator,
             val_loader=val_loader,
             num_examples=num_examples

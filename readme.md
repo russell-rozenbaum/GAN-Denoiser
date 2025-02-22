@@ -15,23 +15,26 @@ Comparative analysis against traditional lowpass filtering demonstrates compleme
 The training data consists of:
 
 1. Clean Signals:
+
    - Three-component sinusoidal compositions
    - Frequency range: 10Hz - 64Hz (uniform random distribution)
    - Design ensures minimal training-validation set overlap
 
 2. Noise Generation:
+
    - Gaussian white noise (GWN)
-   - Parameters: μ = 0, σ = 0.5
+   - Parameters: μ = 0, σ = 1.0
    - 256 samples per signal
 
 3. Signal Combination:
+
    - Mixed signals generated at SNR = -2
    - Paired clean-mixed signal combinations for reconstruction loss computation
 
 4. Dataset Distribution:
-   - Total samples: 1800
-   - Training set: 1600 samples
-   - Validation set: 200 samples
+   - Total samples: 4500
+   - Training set: 4000 samples
+   - Validation set: 500 samples
 
 Sample visualization of generated data across different sets:
 
@@ -40,11 +43,13 @@ Sample visualization of generated data across different sets:
 ### Network Architecture
 
 #### Generator
+
 The generator implements an autoencoder architecture adapted from established signal processing methodologies, optimized for the denoising task.
 
 <img src="images/architecture/generator_architecture.jpg" alt="Generator Architecture" width="320"/>
 
 #### Discriminator
+
 The discriminator employs a compact architecture designed to differentiate between clean signals and generator outputs effectively.
 
 <img src="images/architecture/discriminator_architecture.jpg" alt="Discriminator Architecture" width="320"/>
@@ -54,6 +59,7 @@ The discriminator employs a compact architecture designed to differentiate betwe
 The training protocol implements a hybrid approach:
 
 1. Discriminator Training:
+
    - Standard GAN methodology
    - BCE loss between clean and denoised signals
 
@@ -69,10 +75,35 @@ Training visualization:
 ### Performance Analysis
 
 Training parameters:
+
 - Initial generator training: 40 epochs
 - Combined training: Maximum 200 epochs
 - Early stopping patience: 50 epochs
-- Convergence achieved: Epoch 107
+- Early stopping achieved: Epoch 151
+- Optimal model weights: Epoch 101 (based on validation metrics)
+
+#### Quantitative Performance Metrics
+
+The model demonstrates strong denoising capabilities:
+
+1. **Reconstruction Accuracy**:
+
+   - Reconstruction Loss: 0.0304 (MSE)
+   - Indicates excellent signal reconstruction (scale 0-1, lower is better)
+   - Demonstrates the model's ability to preserve signal integrity
+
+2. **Noise Reduction**:
+
+   - SNR Reduction: 7.2255 dB
+   - Represents approximately 5.3x reduction in noise power
+   - Significant improvement in signal clarity
+
+3. **Signal Preservation**:
+   - Signal Distortion: 7.8965
+   - Indicates some modification of original signal components
+   - Represents the trade-off between noise reduction and signal preservation
+
+The model achieves an impressive balance between noise reduction and signal reconstruction, though with some signal modification. This trade-off is typical in denoising applications, where aggressive noise removal can impact original signal characteristics.
 
 Validation set performance examples:
 
@@ -90,16 +121,19 @@ Representative output comparisons (clean, mixed, denoised, and low-pass filtered
 <img src="images/archive/denoised_against_lowpass_08.png" alt="Denoiser Output Example 8" width="750"/>
 
 Performance observations:
-1. Optimal Performance (Examples 4, 5, 8):
+
+1. Optimal Performance (Examples 4, 5, 6, 8):
+
    - Near-perfect signal reconstruction
    - Minimal residual noise
    - Preserved component magnitudes
 
-2. Moderate Success (Examples 1, 3, 6, 7):
+2. Moderate Success (Examples 1, 2, 7):
+
    - Component magnitude variations
    - Residual frequency artifacts
 
-3. Suboptimal Cases (Example 2):
+3. Suboptimal Cases (Example 3):
    - Signal collapse to single-frequency component
 
 ## Implementation Guide
@@ -109,6 +143,7 @@ The implementation is optimized for standard laptop configurations, with typical
 ### Setup Requirements
 
 1. Directory structure:
+
 ```
 GAN-Denoiser
 ├── data
@@ -130,10 +165,12 @@ GAN-Denoiser
 ### Execution Steps
 
 1. Data Generation:
+
    - Execute create_data.py
    - Verify data generation through displayed random signal plots
 
 2. Dataset Validation:
+
    - Run dataset.py for system compatibility verification
 
 3. Model Training:
