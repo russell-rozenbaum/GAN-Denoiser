@@ -94,7 +94,7 @@ The model demonstrates strong denoising capabilities:
 
 2. **Noise Reduction**:
 
-   - SNR Reduction: 7.2255 dB
+   - SNR Improvement: 7.2255 dB
    - Represents approximately 5.3x reduction in noise power
    - Significant improvement in signal clarity
 
